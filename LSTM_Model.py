@@ -9,8 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import tensorflow as tf
 
-physical_devices = tf.config.list_physical_devices('GPU')
-print("Num GPUs:", len(physical_devices))
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  
 
 
 class LSTMModel:
@@ -48,23 +47,26 @@ class LSTMModel:
 
     def build_model(self):
         # Build the LSTM model
-        self.model = Sequential()
-        self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(self.num_time_steps, self.num_features)))
-        self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True))
-        self.model.add(LSTM(units=self.num_hidden_units))
-        self.model.add(Dense(units=1))
+        with tf.device('/gpu:0'):
+            self.model = Sequential()
+            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(self.num_time_steps, self.num_features)))
+            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True))
+            self.model.add(LSTM(units=self.num_hidden_units))
+            self.model.add(Dense(units=1))
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
 
     def train(self, num_epochs=100, batch_size=32):
         # Train the model
-        self.model.fit(self.x_train, self.y_train, epochs=num_epochs, batch_size=batch_size)
+        with tf.device('/gpu:0'):
+            self.model.fit(self.x_train, self.y_train, epochs=num_epochs, batch_size=batch_size)
 
     def evaluate(self):
         # Evaluate the model
-        self.test_loss = self.model.evaluate(self.x_test, self.y_test)
-        self.test_predictions = self.model.predict(self.x_test)
-        self.test_predictions = self.scaler.inverse_transform(self.test_predictions)
+        with tf.device('/gpu:0'):
+            self.test_loss = self.model.evaluate(self.x_test, self.y_test)
+            self.test_predictions = self.model.predict(self.x_test)
+            self.test_predictions = self.scaler.inverse_transform(self.test_predictions)
 
     def get_predictions(self):
         # Return the predictions on the test data

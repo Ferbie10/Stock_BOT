@@ -39,7 +39,7 @@ def sp500_data(sp500, start_date, start, end_date):
     for symbol in sp500:
         ticker = yf.Ticker(symbol)
         tik_history = ticker.history(
-            period='1mo', start=start_date, end=end_date, interval='1wk')
+            period='1mo', start=start_date, end=end_date, interval='15')
         filename = os.path.join(path, f'{symbol}.csv')
         tik_history.to_csv(filename)
         data.append(symbol)
@@ -47,7 +47,7 @@ def sp500_data(sp500, start_date, start, end_date):
 
 
 def main():
-    parent = 'C:\\Users\\jjudi\\Documents\\AI_test'
+    parent = '/home/ferbie10/git/Stock_BOT-1'
     assets_file_path = os.path.join(parent, 'assets.csv')
     
     get_dates = Date(assets_file_path)

@@ -67,7 +67,7 @@ class Date:
 
 
 def main():
-    parent = 'C:\\Users\\jjudi\\Documents\\AI_test'
+    parent = '/home/ferbie10/git/Stock_BOT-1'
     assets_file_path = os.path.join(parent, 'assets.csv')
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
     # Initialize Date object to get start date
