@@ -1,16 +1,12 @@
-service:
+services:
   build: .
   ports:
     - "8888:8888"
   volumes:
-    - ./home/ferbie/ai:/home/git/
+    - "./home/ferbie/ai/stock_bot/Stock_BOT:/home/git/"
+  devices:
+    - "/dev/nvidia0:/dev/nvidia0"
   environment:
-    FLASK_ENV: development
+    NVIDIA_VISIBLE_DEVICES: "all"
+    NVIDIA_DRIVER_CAPABILITIES: all
   command: flask run --host=0.0.0.0
-  deploy:
-    resources:
-      reservations:
-        devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [ gpu ]
