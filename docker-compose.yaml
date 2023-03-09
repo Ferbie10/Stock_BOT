@@ -1,18 +1,16 @@
-version: "1.2"
-
-services:
-  myapp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./home/ferbie/ai
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+service:
+  build: .
+  ports:
+    - "8888:8888"
+  volumes:
+    - ./home/ferbie/ai:/home/git/
+  environment:
+    FLASK_ENV: development
+  command: flask run --host=0.0.0.0
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [ gpu ]
