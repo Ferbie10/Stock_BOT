@@ -1,12 +1,12 @@
 services:
-  build: .
-  ports:
-    - "8888:8888"
-  volumes:
-    - "./home/ferbie/ai/stock_bot/Stock_BOT:/home/git/"
-  devices:
-    - "/dev/nvidia0:/dev/nvidia0"
-  environment:
-    NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: all
-  command: flask run --host=0.0.0.0
+  your_service_name:
+    image: 19fbdf449d17
+    volumes:
+      - /dev:/dev
+      - /usr/local/nvidia/lib64:/usr/local/nvidia/lib64
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=PCI\VEN_10DE&DEV_2216&CC_0300

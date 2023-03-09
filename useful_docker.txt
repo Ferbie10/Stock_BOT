@@ -1,0 +1,3 @@
+sudo dockerd # starts service
+docker run --gpus all -it <container image> bash ## starts container and give terminal access
+
