@@ -11,5 +11,5 @@ COPY . /root/home/git
 
 EXPOSE 8888
 
-
-RUN export PATH="$HOME/.local/bin:$PATH"
+CMD ["pwd"]
+CMD [ "cd", 'Stock_BOT' ]
