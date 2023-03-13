@@ -1,5 +1,6 @@
-numpy
-pandas
-keras
-sklearn
+scikit-learn
+datetime
 yfinance
+pandas
+numpy
+keras
