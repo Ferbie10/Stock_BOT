@@ -1,3 +1,4 @@
+
 FROM stockbot/latest:1.2
 COPY . /root/home/git
 WORKDIR /root/home/git
