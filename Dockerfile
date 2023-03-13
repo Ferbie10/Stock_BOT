@@ -1,5 +1,5 @@
 
-FROM stockbot/latest:1.2
+FROM tensorflow/tensorflow:devel-gpu
 COPY . /root/home/git
 WORKDIR /root/home/git
 
