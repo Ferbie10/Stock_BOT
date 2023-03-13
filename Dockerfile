@@ -1,10 +1,10 @@
 
-FROM tensorflow/tensorflow:devel-gpu
+FROM tensorflow/tensorflow:latest-gpu
 COPY . /root/home/git
 WORKDIR /root/home/git
 
 COPY requirements.txt /root/home/git
-
+RUN python3 install pip --upgrade
 RUN pip install -r requirements.txt
 COPY . /root/home/git
 
