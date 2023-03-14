@@ -32,10 +32,12 @@ class Get_Stock_History:
         self.end_date = end_date
 
     def compstockdata(self):
+        
+
         for symbol in self.sp500:
             ticker = yf.Ticker(symbol)
             tik_history = ticker.history(
-                period='1mo', start=self.start_date, end=self.end_date, interval='15m')
+                period='1mo', interval='15m')
             filename = os.path.join(self.path, f'{symbol}.csv')
             if not os.path.exists(filename):
                 tik_history.to_csv(filename)
@@ -54,10 +56,9 @@ class Get_Stock_History:
             model.evaluate()
 
 
-
 def main():
     parent = '/home/ferbie10/git/Stock_BOT-1'
-    
+    print('heelo')
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
     # Initialize Date object to get start date
     today = datetime.date.today()
@@ -68,9 +69,9 @@ def main():
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
     if not os.path.exists(today_folder):
         os.makedirs(today_folder)
-    sp500=["aapl"]
-    Get_Stock_History(today_folder,sp500,today_folder,start_date)
+    sp500 = ["aapl"]
+    test = Get_Stock_History(today_folder, sp500, today_folder, start_date)
+    test.compstockdata()
 
 
-if __name__ == '__main__':
-    main()
+main()

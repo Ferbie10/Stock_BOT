@@ -1,6 +1,2 @@
-print('test')
-
-
-class Test:
-    def __init__(self):
-        print('test1231241244')
+import tensorflow as tf
+print(tf.config.list_physical_devices('GPU'))
