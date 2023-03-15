@@ -32,7 +32,6 @@ class Get_Stock_History:
         self.end_date = end_date
 
     def compstockdata(self):
-        
 
         for symbol in self.sp500:
             ticker = yf.Ticker(symbol)
@@ -57,8 +56,7 @@ class Get_Stock_History:
 
 
 def main():
-    parent = '/home/ferbie10/git/Stock_BOT-1'
-    print('heelo')
+    parent = '/root/home/git'
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
     # Initialize Date object to get start date
     today = datetime.date.today()
@@ -67,8 +65,12 @@ def main():
     start_date = datetime.date(start_year, today.month, today.day)
 
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
+    print(today_folder)
     if not os.path.exists(today_folder):
+        print('no path')
         os.makedirs(today_folder)
+    elif os.path.exists(today_folder):
+        print(f"Path  {today_folder}")
     sp500 = ["aapl"]
     test = Get_Stock_History(today_folder, sp500, today_folder, start_date)
     test.compstockdata()
