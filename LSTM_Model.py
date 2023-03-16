@@ -11,7 +11,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
+<<<<<<< HEAD
     def __init__(self, cleaned_df, close_column_index,train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50):
+=======
+    def __init__(self, cleaned_df, train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50, close_column_index=3):
+>>>>>>> 8724da693b9f77b24ed000565fef326afb159b14
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps

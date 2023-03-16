@@ -43,7 +43,11 @@ class Get_Stock_History:
         for symbol in self.sp500:
             ticker = yf.Ticker(symbol)
             tik_history = ticker.history(
+<<<<<<< HEAD
                 period='15y', interval='1d')
+=======
+                period='1mo', interval='15m')
+>>>>>>> 8724da693b9f77b24ed000565fef326afb159b14
             filename = os.path.join(self.path, f'{symbol}.csv')
             if not os.path.exists(filename):
                 tik_history.to_csv(filename)
@@ -70,7 +74,6 @@ class Get_Stock_History:
                 last_n_days_data)
             print("Predicted closing price for tomorrow:", tomorrow_close_price)
 
-
 def main():
     parent = '/root/home/git'
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
@@ -88,7 +91,11 @@ def main():
     elif os.path.exists(today_folder):
         print(f"Path  {today_folder}")
     sp500 = ["aapl"]
+<<<<<<< HEAD
     test = Get_Stock_History(today_folder, sp500, start_date)
+=======
+    test = Get_Stock_History(today_folder, sp500, today_folder, start_date)
+>>>>>>> 8724da693b9f77b24ed000565fef326afb159b14
     test.compstockdata()
 
 
