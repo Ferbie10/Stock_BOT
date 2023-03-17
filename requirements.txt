@@ -4,5 +4,4 @@ yfinance
 pandas
 numpy
 keras
-
-newspaper3k 
+autopep8
