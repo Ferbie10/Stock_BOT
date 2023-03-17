@@ -5,17 +5,19 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import tensorflow as tf
-
+from tensorflow.keras.callbacks import TensorBoard
+import keras
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index,train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
-        self.num_features = num_features if num_features else len(self.df.columns)
+        self.num_features = num_features if num_features else len(
+            self.df.columns)
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
 
@@ -59,11 +61,14 @@ class LSTMModel:
             self.model.add(
                 LSTM(units=self.num_hidden_units, return_sequences=True))
             self.model.add(LSTM(units=self.num_hidden_units))
-            self.model.add(Dense(units=1))
+            self.model.add(Dense(units=22))
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
+        self.model.save('model.h5')
 
-    def train(self, num_epochs=100, batch_size=32):
+    def train(self, num_epochs=1, batch_size=500):
+        log_dir = "logs/fit"
+        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
         # Train the model
         with tf.device('/gpu:0'):
             self.model.fit(self.x_train, self.y_train,
@@ -71,19 +76,18 @@ class LSTMModel:
 
     def evaluate(self):
         # Evaluate the model
+        self.model = keras.models.load_model('model.h5')
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
             self.test_predictions = self.model.predict(self.x_test)
             self.test_predictions = self.scaler.inverse_transform(
-            self.test_predictions)
-           
-
+                self.test_predictions)
 
     def get_predictions(self):
         # Return the predictions on the test data
         return self.test_predictions
 
-
+    # Add the last_n_days_data argument back
     def predict_tomorrow(self, last_n_days_data):
         # Scale the input data using the previously fitted scaler
         scaled_data = self.scaler.transform(last_n_days_data)
@@ -97,6 +101,5 @@ class LSTMModel:
 
         # Inverse transform the prediction to get the actual price
         actual_prediction = self.scaler.inverse_transform(prediction)
-        
-        return actual_prediction[0][0]
 
+        return actual_prediction[0][0]

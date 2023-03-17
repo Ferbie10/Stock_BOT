@@ -11,11 +11,14 @@ import dataPrep
 import LSTM_Model
 import datetime
 
+
 def normalize_data(df):
-    numeric_df = df.select_dtypes(include=np.number)  # Select only numeric columns
+    # Select only numeric columns
+    numeric_df = df.select_dtypes(include=np.number)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(numeric_df.values)
-    normalized_df = pd.DataFrame(scaled_data, columns=numeric_df.columns, index=numeric_df.index)
+    normalized_df = pd.DataFrame(
+        scaled_data, columns=numeric_df.columns, index=numeric_df.index)
     return normalized_df, scaler
 
 
@@ -36,7 +39,6 @@ class Get_Stock_History:
         self.path = path
         self.sp500 = sp500
         self.start_date = start_date
-    
 
     def compstockdata(self):
 
@@ -64,11 +66,13 @@ class Get_Stock_History:
             lstm_model.build_model()
             lstm_model.train()
             lstm_model.evaluate()
+            num_time_steps = 10
+            last_n_days_data = csv_cleaner.df[-num_time_steps:]
 
-            last_n_days_data = normalized_df.iloc[-num_time_steps:]
             tomorrow_close_price = lstm_model.predict_tomorrow(
                 last_n_days_data)
             print("Predicted closing price for tomorrow:", tomorrow_close_price)
+
 
 def main():
     parent = '/root/home/git'
