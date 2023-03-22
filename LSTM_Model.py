@@ -70,7 +70,7 @@ class LSTMModel:
         self.model.compile(optimizer='adam', loss='mean_squared_error')
         self.model.save(f'{self.symbol}.h5')
 
-    def train(self, num_epochs=1, batch_size=500):
+    def train(self, num_epochs=300, batch_size=500):
         log_dir = "logs/fit"
         tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
         # Train the model
@@ -93,11 +93,11 @@ class LSTMModel:
         return self.test_predictions
 
     # Add the last_n_days_data argument back
-    def predict_tomorrow_close_price(self, csv_cleaner, num_time_steps=10):
-        last_n_days_data = csv_cleaner.df[-num_time_steps:]
+    def predict_tomorrow_close_price(self, csv_cleaner):
+        last_n_days_data = csv_cleaner.df[-self.num_time_steps:]
         last_n_days_data_numeric = last_n_days_data.select_dtypes(include=np.number)
         scaled_last_n_days_data = self.scaler.transform(last_n_days_data_numeric)
-        x_input = np.array(scaled_last_n_days_data).reshape(1, num_time_steps, self.num_features)
+        x_input = np.array(scaled_last_n_days_data).reshape(1, self.num_time_steps, self.num_features)
         
         with tf.device('/gpu:0'):
             tomorrow_close_price_scaled = self.model.predict(x_input)
