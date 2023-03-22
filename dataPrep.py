@@ -2,9 +2,14 @@ import numpy as np
 import pandas as pd
 
 class CSVCleaner:
-    def __init__(self, csv_file_path, output_file_path):
+    def __init__(self, csv_file_path, output_file_path, symbol):
         self.df = pd.read_csv(csv_file_path)
         self.output_file_path = output_file_path
+        self.symbol = symbol
+        self.add_symbol()
+        
+    def add_symbol(self):
+        self.df.insert(0, 'symbol', self.symbol)
         
     def clean(self):
         # Remove unnecessary columns and rename columns

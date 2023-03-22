@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=10, num_features=22, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
@@ -20,8 +20,10 @@ class LSTMModel:
             self.df.columns)
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
+        self.symbol = symbol
 
     def preprocess(self):
+        self.df.drop(columns=['symbol'], inplace=True)
         # Normalize the data using MinMaxScaler
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.scaled_data = self.scaler.fit_transform(self.df)
@@ -64,7 +66,7 @@ class LSTMModel:
             self.model.add(Dense(units=22))
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
-        self.model.save('model.h5')
+        self.model.save(f'{self.symbol}.h5')
 
     def train(self, num_epochs=1, batch_size=500):
         log_dir = "logs/fit"
@@ -76,7 +78,7 @@ class LSTMModel:
 
     def evaluate(self):
         # Evaluate the model
-        self.model = keras.models.load_model('model.h5')
+        self.model = keras.models.load_model(f'{self.symbol}.h5')
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
             self.test_predictions = self.model.predict(self.x_test)

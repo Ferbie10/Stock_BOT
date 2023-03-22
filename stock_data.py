@@ -53,7 +53,7 @@ class Get_Stock_History:
             output_file_path = os.path.join(self.path, f'{symbol}_edited.csv')
 
             # Call CSV cleaner for the newly created file
-            csv_cleaner = dataPrep.CSVCleaner(filename, output_file_path)
+            csv_cleaner = dataPrep.CSVCleaner(filename, output_file_path,symbol)
             csv_cleaner.clean()
             csv_cleaner.transform(output_file_path)
             normalized_df, scaler = normalize_data(csv_cleaner.df)
@@ -90,7 +90,7 @@ def main():
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
         print(f"Path  {today_folder}")
-        
+
     sp500 = ["aapl"]
     test = Get_Stock_History(today_folder, sp500, start_date)
     test.compstockdata()
