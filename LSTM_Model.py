@@ -12,18 +12,20 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=40, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=40, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
         self.num_features = num_features if num_features else len(
             self.df.columns)
+
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
         self.symbol = symbol
 
     def preprocess(self):
-        self.df.drop(columns=['symbol'], inplace=True)
+        if 'symbol' in self.df.columns:
+            self.df.drop(columns=['symbol'], inplace=True)
         # Normalize the data using MinMaxScaler
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.scaled_data = self.scaler.fit_transform(self.df)
@@ -90,18 +92,14 @@ class LSTMModel:
         return self.test_predictions
 
     # Add the last_n_days_data argument back
-    def predict_tomorrow(self, last_n_days_data):
-        # Scale the input data using the previously fitted scaler
-        scaled_data = self.scaler.transform(last_n_days_data)
-
-        # Reshape the input data for the LSTM model
-        input_data = np.reshape(
-            scaled_data, (1, scaled_data.shape[0], scaled_data.shape[1]))
-
-        # Make the prediction using the trained model
-        prediction = self.model.predict(input_data)
-
-        # Inverse transform the prediction to get the actual price
-        actual_prediction = self.scaler.inverse_transform(prediction)
-
-        return actual_prediction[0][0]
+    def predict_tomorrow_close_price(self, csv_cleaner, num_time_steps=10):
+        last_n_days_data = csv_cleaner.df[-num_time_steps:]
+        last_n_days_data_numeric = last_n_days_data.select_dtypes(include=np.number)
+        scaled_last_n_days_data = self.scaler.transform(last_n_days_data_numeric)
+        x_input = np.array(scaled_last_n_days_data).reshape(1, num_time_steps, self.num_features)
+        
+        with tf.device('/gpu:0'):
+            tomorrow_close_price_scaled = self.model.predict(x_input)
+        
+        tomorrow_close_price = self.scaler.inverse_transform(tomorrow_close_price_scaled)[0][self.close_column_index]
+        return tomorrow_close_price

@@ -12,7 +12,6 @@ import LSTM_Model
 import datetime
 
 
-
 class Get_Stock_History:
     def __init__(self, path, sp500, start_date):
         self.path = path
@@ -45,11 +44,11 @@ class Get_Stock_History:
         csv_cleaner.transform(output_file_path)
         normalized_df, scaler = self.normalize_data(csv_cleaner.df)
 
-        return normalized_df, csv_cleaner.df.columns.get_loc('close')
+        return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner
 
-    def train_and_evaluate_lstm_model(self, normalized_df, close_column_index):
+    def train_and_evaluate_lstm_model(self, normalized_df, close_column_index, symbol):
         lstm_model = LSTM_Model.LSTMModel(
-            cleaned_df=normalized_df, close_column_index=close_column_index)
+            cleaned_df=normalized_df, close_column_index=close_column_index, symbol=symbol)
         lstm_model.preprocess()
         lstm_model.build_model()
         lstm_model.train()
@@ -57,19 +56,16 @@ class Get_Stock_History:
 
         return lstm_model
 
-    def predict_tomorrow_close_price(self, lstm_model, csv_cleaner, num_time_steps=10):
-        last_n_days_data = csv_cleaner.df[-num_time_steps:]
-        tomorrow_close_price = lstm_model.predict_tomorrow(last_n_days_data)
-        return tomorrow_close_price
-
     def compstockdata(self):
         for symbol in self.sp500:
             filename = self.download_stock_history(symbol)
-            normalized_df, close_column_index = self.preprocess_stock_data(filename, symbol)
-            lstm_model = self.train_and_evaluate_lstm_model(normalized_df, close_column_index)
-            tomorrow_close_price = self.predict_tomorrow_close_price(lstm_model, csv_cleaner)
+            normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
+                filename, symbol)
+            lstm_model = self.train_and_evaluate_lstm_model(
+                normalized_df, close_column_index, symbol)
+            # Use the predict_tomorrow_close_price function from the LSTMModel class
+            tomorrow_close_price = lstm_model.predict_tomorrow_close_price(csv_cleaner)
             print("Predicted closing price for tomorrow:", tomorrow_close_price)
-
 
 
 def main():
@@ -84,7 +80,7 @@ def main():
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
     print(today_folder)
     if not os.path.exists(today_folder):
-        
+
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
         print(f"Path  {today_folder}")
