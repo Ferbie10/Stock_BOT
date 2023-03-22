@@ -86,10 +86,11 @@ def main():
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
     print(today_folder)
     if not os.path.exists(today_folder):
-        print('no path')
+        
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
         print(f"Path  {today_folder}")
+        
     sp500 = ["aapl"]
     test = Get_Stock_History(today_folder, sp500, start_date)
     test.compstockdata()
