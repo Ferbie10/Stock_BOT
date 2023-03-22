@@ -76,7 +76,8 @@ class LSTMModel:
         # Train the model
         with tf.device('/gpu:0'):
             self.model.fit(self.x_train, self.y_train,
-                           epochs=num_epochs, batch_size=batch_size)
+                        epochs=num_epochs, batch_size=batch_size,
+                        callbacks=[tensorboard_callback])
 
     def evaluate(self):
         # Evaluate the model
