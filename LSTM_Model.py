@@ -22,7 +22,6 @@ class LSTMModel:
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
         self.symbol = symbol
-        self.pred
 
     def preprocess(self):
         if 'symbol' in self.df.columns:
@@ -70,7 +69,7 @@ class LSTMModel:
         self.model.compile(optimizer='adam', loss='mean_squared_error')
         self.model.save(f'{self.symbol}.h5')
 
-    def train(self, num_epochs=300, batch_size=500):
+    def train(self, num_epochs=300, batch_size=64):
         log_dir = "logs/fit"
         tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
         # Train the model
@@ -85,8 +84,13 @@ class LSTMModel:
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
             self.test_predictions = self.model.predict(self.x_test)
-            self.test_predictions = self.scaler.inverse_transform(
-                self.test_predictions)
+
+            # Create a dummy array with the same shape as the test set
+            dummy_array = np.zeros_like(self.x_test[:, -1, :])
+            dummy_array[:, self.close_column_index] = self.test_predictions
+
+            # Apply inverse_transform on the dummy array
+            self.test_predictions = self.scaler.inverse_transform(dummy_array)[:, self.close_column_index]
 
     def get_predictions(self):
         # Return the predictions on the test data
@@ -108,7 +112,7 @@ class LSTMModel:
         future_close_prices = self.scaler.inverse_transform(
             future_close_prices_scaled)[0]
 
-        future_close_price = future_close_prices[prediction_days - 1]
+        future_close_price = future_close_prices[self.prediction_days - 1]
         most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
         prediction = 1 if future_close_price > most_recent_close_price else 2
 
