@@ -63,9 +63,25 @@ class Get_Stock_History:
                 filename, symbol)
             lstm_model = self.train_and_evaluate_lstm_model(
                 normalized_df, close_column_index, symbol)
-            # Use the predict_tomorrow_close_price function from the LSTMModel class
-            tomorrow_close_price = lstm_model.predict_tomorrow_close_price(csv_cleaner)
-            print("Predicted closing price for tomorrow:", tomorrow_close_price)
+
+            # Use the predict_future_close_price function from the LSTMModel class
+            prediction_1_day, future_close_price_1_day = lstm_model.predict_future_close_price(
+                csv_cleaner, 1)
+            prediction_5_day, future_close_price_5_day = lstm_model.predict_future_close_price(
+                csv_cleaner, 5)
+            prediction_20_day, future_close_price_20_day = lstm_model.predict_future_close_price(
+                csv_cleaner, 20)
+
+            # Add the prediction results to the DataFrame
+            csv_cleaner.df.loc[pd.Timestamp.now(
+            ), '1 day predict'] = prediction_1_day
+            csv_cleaner.df.loc[pd.Timestamp.now(
+            ), '5 day predict'] = prediction_5_day
+            csv_cleaner.df.loc[pd.Timestamp.now(
+            ), '20 day predict'] = prediction_20_day
+
+            data_with_predictions = pd.read_csv(
+                f'{symbol}_Predictions.csv', index_col=0, parse_dates=True)
 
 
 def main():

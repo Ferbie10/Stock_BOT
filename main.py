@@ -5,7 +5,7 @@ import datetime
 import os
 
 
-def main():
+def main(*args):
     parent = '/home/ferbie10/git/Stock_BOT-1'
     
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
@@ -20,7 +20,7 @@ def main():
         os.makedirs(today_folder)
     loop = 0
     while (loop ==0):
-        user_options = input("Please enter 1 to get stock data\n Please enter 2, to clean data\n Enter 3 to model data")
+        user_options = input("Please enter 1 to get stock data\n Please enter 2, to clean data\n \n3 Enter Enter 3 to model data")
         if user_options ==1:
             indivdual_or_list = input("Enter 1 for indivdual stock or 2 for stock index:  ")
             if indivdual_or_list ==1:

@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=40, num_features=None, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=1000, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
@@ -22,6 +22,7 @@ class LSTMModel:
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
         self.symbol = symbol
+        self.pred
 
     def preprocess(self):
         if 'symbol' in self.df.columns:
@@ -57,7 +58,6 @@ class LSTMModel:
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
     def build_model(self):
-        # Build the LSTM model
         with tf.device('/gpu:0'):
             self.model = Sequential()
             self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(
@@ -65,7 +65,7 @@ class LSTMModel:
             self.model.add(
                 LSTM(units=self.num_hidden_units, return_sequences=True))
             self.model.add(LSTM(units=self.num_hidden_units))
-            self.model.add(Dense(units=22))
+            self.model.add(Dense(units=3))  # Change the output size to 3
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
         self.model.save(f'{self.symbol}.h5')
@@ -76,8 +76,8 @@ class LSTMModel:
         # Train the model
         with tf.device('/gpu:0'):
             self.model.fit(self.x_train, self.y_train,
-                        epochs=num_epochs, batch_size=batch_size,
-                        callbacks=[tensorboard_callback])
+                           epochs=num_epochs, batch_size=batch_size,
+                           callbacks=[tensorboard_callback])
 
     def evaluate(self):
         # Evaluate the model
@@ -93,14 +93,23 @@ class LSTMModel:
         return self.test_predictions
 
     # Add the last_n_days_data argument back
-    def predict_tomorrow_close_price(self, csv_cleaner):
+    def predict_future_close_price(self, csv_cleaner, prediction_days):
         last_n_days_data = csv_cleaner.df[-self.num_time_steps:]
-        last_n_days_data_numeric = last_n_days_data.select_dtypes(include=np.number)
-        scaled_last_n_days_data = self.scaler.transform(last_n_days_data_numeric)
-        x_input = np.array(scaled_last_n_days_data).reshape(1, self.num_time_steps, self.num_features)
-        
+        last_n_days_data_numeric = last_n_days_data.select_dtypes(
+            include=np.number)
+        scaled_last_n_days_data = self.scaler.transform(
+            last_n_days_data_numeric)
+        x_input = np.array(scaled_last_n_days_data).reshape(
+            1, self.num_time_steps, self.num_features)
+
         with tf.device('/gpu:0'):
-            tomorrow_close_price_scaled = self.model.predict(x_input)
-        
-        tomorrow_close_price = self.scaler.inverse_transform(tomorrow_close_price_scaled)[0][self.close_column_index]
-        return tomorrow_close_price
+            future_close_prices_scaled = self.model.predict(x_input)
+
+        future_close_prices = self.scaler.inverse_transform(
+            future_close_prices_scaled)[0]
+
+        future_close_price = future_close_prices[prediction_days - 1]
+        most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
+        prediction = 1 if future_close_price > most_recent_close_price else 2
+
+        return prediction, future_close_price
