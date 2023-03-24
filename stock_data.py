@@ -61,7 +61,7 @@ class Get_Stock_History:
         processed_df = pd.read_csv(filepath, index_col=0, parse_dates=True)
         symbol = os.path.basename(filepath).split('_')[0]
         close_column_index = processed_df.columns.get_loc('close')
-        
+
         # Create a CSVCleaner object with the preprocessed data
         csv_cleaner = dataPrep.CSVCleaner(filepath, filepath, symbol)
         csv_cleaner.df = processed_df
@@ -86,12 +86,11 @@ class Get_Stock_History:
 
         # Use the predict_future_close_price function from the LSTMModel class
         prediction_days = [1, 5, 20]
-        predictions = lstm_model.predict_future_close_price(csv_cleaner, prediction_days)
+        predictions = lstm_model.predict_future_close_price(
+            csv_cleaner, prediction_days)
         prediction_1_day, future_close_price_1_day = predictions[1]
         prediction_5_day, future_close_price_5_day = predictions[5]
         prediction_20_day, future_close_price_20_day = predictions[20]
-
-
 
         # Add the prediction results to the DataFrame
         csv_cleaner.df.loc[pd.Timestamp.now(
@@ -101,6 +100,9 @@ class Get_Stock_History:
         csv_cleaner.df.loc[pd.Timestamp.now(
         ), '20 day predict'] = prediction_20_day
 
-        data_with_predictions = pd.read_csv(
-            f'{symbol}_Predictions.csv', index_col=0, parse_dates=True)
+        # Save the DataFrame to a new CSV file
+        data_with_predictions = csv_cleaner.df.to_csv(
+            f'{symbol}_Predictions_with_Data.csv', index=True)
+
+        # Return the data with predictions
         return data_with_predictions
