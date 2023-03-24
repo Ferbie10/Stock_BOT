@@ -18,7 +18,7 @@ class Get_Stock_History:
         self.sp500 = sp500
         self.start_date = start_date
 
-    def normalize_data(self, df):
+    def normalize_stock_data(self, df):
         # Select only numeric columns
         numeric_df = df.select_dtypes(include=np.number)
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -42,68 +42,64 @@ class Get_Stock_History:
         csv_cleaner = dataPrep.CSVCleaner(filename, output_file_path, symbol)
         csv_cleaner.clean()
         csv_cleaner.transform(output_file_path)
-        normalized_df, scaler = self.normalize_data(csv_cleaner.df)
+        normalized_df, scaler = self.normalize_stock_data(csv_cleaner.df)
 
         return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner
 
-    def train_and_evaluate_lstm_model(self, normalized_df, close_column_index, symbol):
+    def download_and_preprocess_data(self, symbol):
+        filename = self.download_stock_history(symbol)
+        normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
+            filename, symbol)
+        return normalized_df, close_column_index, csv_cleaner
+
+    def process_existing_data(self, filename, symbol):
+        normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
+            filename, symbol)
+        return normalized_df, close_column_index, csv_cleaner
+
+    def load_processed_data(self, filepath):
+        processed_df = pd.read_csv(filepath, index_col=0, parse_dates=True)
+        symbol = os.path.basename(filepath).split('_')[0]
+        close_column_index = processed_df.columns.get_loc('close')
+        
+        # Create a CSVCleaner object with the preprocessed data
+        csv_cleaner = dataPrep.CSVCleaner(filepath, filepath, symbol)
+        csv_cleaner.df = processed_df
+
+        return processed_df, close_column_index, symbol, csv_cleaner
+
+    def train_evaluate_and_predict(self, normalized_df, close_column_index, symbol, csv_cleaner, today_folder, model_filepath=None):
         lstm_model = LSTM_Model.LSTMModel(
-            cleaned_df=normalized_df, close_column_index=close_column_index, symbol=symbol)
-        lstm_model.preprocess()
-        lstm_model.build_model()
-        lstm_model.train()
+            cleaned_df=normalized_df, close_column_index=close_column_index, symbol=symbol, today_folder=today_folder)
+
+        if model_filepath:
+            # Load the saved model
+            lstm_model.load_model(model_filepath)
+        else:
+            # Build and train a new model
+            lstm_model.preprocess()
+            lstm_model.build_model()
+            lstm_model.train()
+
+        # Evaluate the model
         lstm_model.evaluate()
 
-        return lstm_model
+        # Use the predict_future_close_price function from the LSTMModel class
+        prediction_1_day, future_close_price_1_day = lstm_model.predict_future_close_price(
+            csv_cleaner, 1)
+        prediction_5_day, future_close_price_5_day = lstm_model.predict_future_close_price(
+            csv_cleaner, 5)
+        prediction_20_day, future_close_price_20_day = lstm_model.predict_future_close_price(
+            csv_cleaner, 20)
 
-    def compstockdata(self):
-        for symbol in self.sp500:
-            filename = self.download_stock_history(symbol)
-            normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
-                filename, symbol)
-            lstm_model = self.train_and_evaluate_lstm_model(
-                normalized_df, close_column_index, symbol)
+        # Add the prediction results to the DataFrame
+        csv_cleaner.df.loc[pd.Timestamp.now(
+        ), '1 day predict'] = prediction_1_day
+        csv_cleaner.df.loc[pd.Timestamp.now(
+        ), '5 day predict'] = prediction_5_day
+        csv_cleaner.df.loc[pd.Timestamp.now(
+        ), '20 day predict'] = prediction_20_day
 
-            # Use the predict_future_close_price function from the LSTMModel class
-            prediction_1_day, future_close_price_1_day = lstm_model.predict_future_close_price(
-                csv_cleaner, 1)
-            prediction_5_day, future_close_price_5_day = lstm_model.predict_future_close_price(
-                csv_cleaner, 5)
-            prediction_20_day, future_close_price_20_day = lstm_model.predict_future_close_price(
-                csv_cleaner, 20)
-
-            # Add the prediction results to the DataFrame
-            csv_cleaner.df.loc[pd.Timestamp.now(
-            ), '1 day predict'] = prediction_1_day
-            csv_cleaner.df.loc[pd.Timestamp.now(
-            ), '5 day predict'] = prediction_5_day
-            csv_cleaner.df.loc[pd.Timestamp.now(
-            ), '20 day predict'] = prediction_20_day
-
-            data_with_predictions = pd.read_csv(
-                f'{symbol}_Predictions.csv', index_col=0, parse_dates=True)
-
-
-def main():
-    parent = '/root/home/git'
-    url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
-    # Initialize Date object to get start date
-    today = datetime.date.today()
-    years_past = 15
-    start_year = today.year - years_past
-    start_date = datetime.date(start_year, today.month, today.day)
-
-    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
-    print(today_folder)
-    if not os.path.exists(today_folder):
-
-        os.makedirs(today_folder)
-    elif os.path.exists(today_folder):
-        print(f"Path  {today_folder}")
-
-    sp500 = ["aapl"]
-    test = Get_Stock_History(today_folder, sp500, start_date)
-    test.compstockdata()
-
-
-main()
+        data_with_predictions = pd.read_csv(
+            f'{symbol}_Predictions.csv', index_col=0, parse_dates=True)
+        return data_with_predictions

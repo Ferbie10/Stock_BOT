@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, train_test_split_ratio=0.8, num_time_steps=1000, num_features=None, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=500, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
@@ -22,6 +22,7 @@ class LSTMModel:
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
         self.symbol = symbol
+        self.today_folder = today_folder
 
     def preprocess(self):
         if 'symbol' in self.df.columns:
@@ -55,6 +56,7 @@ class LSTMModel:
             self.x_train, (self.x_train.shape[0], self.x_train.shape[1], self.num_features))
         self.x_test = np.reshape(
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
+        return self.x_train, self.y_train, self.x_test, self.y_test
 
     def build_model(self):
         with tf.device('/gpu:0'):
@@ -78,8 +80,15 @@ class LSTMModel:
                            epochs=num_epochs, batch_size=batch_size,
                            callbacks=[tensorboard_callback])
 
-    def evaluate(self):
-        # Evaluate the model
+    @classmethod
+    def load_model(cls, model_path, cleaned_df, close_column_index, symbol, today_folder):
+        model = keras.models.load_model(model_path)
+        lstm_model_instance = cls(
+            cleaned_df, close_column_index, symbol, today_folder)
+        lstm_model_instance.model = model
+        return lstm_model_instance
+
+    def evaluate(self, x_test, y_test):
         self.model = keras.models.load_model(f'{self.symbol}.h5')
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
@@ -90,13 +99,13 @@ class LSTMModel:
             dummy_array[:, self.close_column_index] = self.test_predictions
 
             # Apply inverse_transform on the dummy array
-            self.test_predictions = self.scaler.inverse_transform(dummy_array)[:, self.close_column_index]
+            self.test_predictions = self.scaler.inverse_transform(
+                dummy_array)[:, self.close_column_index]
 
     def get_predictions(self):
         # Return the predictions on the test data
         return self.test_predictions
 
-    # Add the last_n_days_data argument back
     def predict_future_close_price(self, csv_cleaner, prediction_days):
         last_n_days_data = csv_cleaner.df[-self.num_time_steps:]
         last_n_days_data_numeric = last_n_days_data.select_dtypes(

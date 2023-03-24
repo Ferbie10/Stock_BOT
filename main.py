@@ -1,8 +1,16 @@
+import LSTM_Model
+import datetime
+import os
+import keras
+import stock_data
+import pandas as pd
+import dataPrep
+
+
 def main():
     parent = '/root/home/git/'
 
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
-    # Initialize Date object to get start date
     today = datetime.date.today()
     years_past = 5
     start_year = today.year - years_past
@@ -11,34 +19,64 @@ def main():
     if not os.path.exists(today_folder):
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
-        print(f"Path  {today_folder}")
+        pass
     loop = 0
-    while (loop == 0):
-        user_options = int(input("Please Enter 1 for to create a new model \nEnter 2 to load in a CSV\nEnter 3 to load a new Model\n"))
-
-        if user_options == 1:
-            indivdual_or_list = int(input("Enter 1 for indivdual stock or 2 for stock index:  "))
+    while loop == 0:
+        user_options = input(
+            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n")
+        print(user_options)
+        print(type(user_options))
+        if user_options == '1':
+            indivdual_or_list = int(
+                input("Enter 1 for individual stock or 2 for stock index:  "))
             if indivdual_or_list == 1:
                 stock_list = input("Please enter the stock Symbol:  ")
+                single_stock = stock_data.Get_Stock_History(
+                    today_folder, stock_list, start_date)
+                normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
+                    stock_list)
+                single_stock.train_evaluate_and_predict(
+                    normalized_df, close_column_index, stock_list, csv_cleaner, today_folder)
 
             else:
-                index_url = input("Please enter the url of the Index List:   ")
-                Complist = Get_SP500(url)
+                index_url = input("Please enter the URL of the Index List:   ")
+                Complist = dataPrep.Get_SP500(url)
                 stock_list = Complist.download()
-            stocks = Get_Stock_History(today_folder, stock_list, start_date, today)
+            stocks = dataPrep.Get_Stock_History(
+                today_folder, stock_list, start_date, today)
             stocks.compstockdata()
             os.system('cls')
-        elif user_options == 2:
+
+        elif user_options == '2':
             csv_path = input("Please enter the path of the CSV file: ")
-        elif user_options == 3:
-            model_Path = input("Please enter the model path: ")
-            symbol = 'aapl'
+            stocks = stock_data.Get_Stock_History(
+                today_folder, None, start_date, today)
+            stocks.load_and_preprocess_csv(csv_path)
+            os.system('cls')
+        elif user_options == '3':
+            # processed_data_path = input("Please enter the path of the processed data CSV file: ")
+            processed_data_path = '/root/home/git/2008-03-23/aapl_edited.csv'
+            ticker = processed_data_path.split(
+                "/")[-1].replace("_edited.csv", "")
 
-            # Load and preprocess the data before creating the LSTMModel instance
-            filename = stock_data.download_stock_history(symbol)
-            normalized_df, close_column_index, csv_cleaner = stock_data.preprocess_stock_data(filename, symbol)
+            stocks = stock_data.Get_Stock_History(
+                today_folder, ticker, start_date)
+            processed_df, close_column_index, symbol, csv_cleaner = stocks.load_processed_data(
+                processed_data_path)
 
-            lstm_model = LSTM_Model.LSTMModel(cleaned_df=normalized_df, close_column_index=close_column_index, symbol=symbol)
+            stocks.train_evaluate_and_predict(
+                processed_df, close_column_index, symbol, csv_cleaner, today_folder)
+            os.system('cls')
+        elif user_options == '4':
+            model_path = input(
+                "Please enter the path of the saved model file: ")
+            lstm_model = LSTM_Model.LSTMModel.load_model(
+                model_path, cleaned_df, close_column_index, symbol, today_folder)
             lstm_model.evaluate()
+
+            os.system('cls')
         else:
             loop = 1
+
+
+main()
