@@ -85,12 +85,13 @@ class Get_Stock_History:
         lstm_model.evaluate()
 
         # Use the predict_future_close_price function from the LSTMModel class
-        prediction_1_day, future_close_price_1_day = lstm_model.predict_future_close_price(
-            csv_cleaner, 1)
-        prediction_5_day, future_close_price_5_day = lstm_model.predict_future_close_price(
-            csv_cleaner, 5)
-        prediction_20_day, future_close_price_20_day = lstm_model.predict_future_close_price(
-            csv_cleaner, 20)
+        prediction_days = [1, 5, 20]
+        predictions = lstm_model.predict_future_close_price(csv_cleaner, prediction_days)
+        prediction_1_day, future_close_price_1_day = predictions[1]
+        prediction_5_day, future_close_price_5_day = predictions[5]
+        prediction_20_day, future_close_price_20_day = predictions[20]
+
+
 
         # Add the prediction results to the DataFrame
         csv_cleaner.df.loc[pd.Timestamp.now(

@@ -71,7 +71,7 @@ class LSTMModel:
         self.model.compile(optimizer='adam', loss='mean_squared_error')
         self.model.save(f'{self.symbol}.h5')
 
-    def train(self, num_epochs=300, batch_size=64):
+    def train(self, num_epochs=1, batch_size=64):
         log_dir = "logs/fit"
         tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
         # Train the model
@@ -88,19 +88,22 @@ class LSTMModel:
         lstm_model_instance.model = model
         return lstm_model_instance
 
-    def evaluate(self, x_test, y_test):
+    def evaluate(self):
         self.model = keras.models.load_model(f'{self.symbol}.h5')
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
             self.test_predictions = self.model.predict(self.x_test)
 
             # Create a dummy array with the same shape as the test set
-            dummy_array = np.zeros_like(self.x_test[:, -1, :])
-            dummy_array[:, self.close_column_index] = self.test_predictions
+            dummy_array = np.zeros((self.y_test.shape[0], self.num_features))
 
-            # Apply inverse_transform on the dummy array
-            self.test_predictions = self.scaler.inverse_transform(
-                dummy_array)[:, self.close_column_index]
+            closing_price_column_index = self.df.columns.get_loc('close')
+            for i in range(self.test_predictions.shape[1]):
+                dummy_array[:, closing_price_column_index] = self.test_predictions[:, i]
+
+                # Apply inverse_transform on the dummy array
+                self.test_predictions[:, i] = self.scaler.inverse_transform(
+                    dummy_array)[:, closing_price_column_index]
 
     def get_predictions(self):
         # Return the predictions on the test data
@@ -118,11 +121,19 @@ class LSTMModel:
         with tf.device('/gpu:0'):
             future_close_prices_scaled = self.model.predict(x_input)
 
+        # Create a dummy array with the same shape as the input for inverse_transform
+        dummy_array = np.zeros((3, self.num_features))
+        closing_price_column_index = self.df.columns.get_loc('close')
+        dummy_array[:, closing_price_column_index] = future_close_prices_scaled
+
+        # Apply inverse_transform on the dummy array
         future_close_prices = self.scaler.inverse_transform(
-            future_close_prices_scaled)[0]
+            dummy_array)[:, closing_price_column_index]
 
-        future_close_price = future_close_prices[self.prediction_days - 1]
-        most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
-        prediction = 1 if future_close_price > most_recent_close_price else 2
+        predictions = {}
+        for days, future_close_price in zip(prediction_days, future_close_prices):
+            most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
+            prediction = 1 if future_close_price > most_recent_close_price else 2
+            predictions[days] = (prediction, future_close_price)
 
-        return prediction, future_close_price
+        return predictions
