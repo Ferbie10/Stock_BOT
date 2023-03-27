@@ -23,9 +23,7 @@ def main():
     loop = 0
     while loop == 0:
         user_options = input(
-            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n")
-        print(user_options)
-        print(type(user_options))
+            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
         if user_options == '1':
             indivdual_or_list = int(
                 input("Enter 1 for individual stock or 2 for stock index:  "))
@@ -42,17 +40,17 @@ def main():
                 index_url = input("Please enter the URL of the Index List:   ")
                 Complist = dataPrep.Get_SP500(url)
                 stock_list = Complist.download()
-            stocks = dataPrep.Get_Stock_History(
-                today_folder, stock_list, start_date, today)
-            stocks.compstockdata()
-            os.system('cls')
+                stocks = dataPrep.Get_Stock_History(
+                    today_folder, stock_list, start_date, today)
+                stocks.compstockdata()
+            os.system('clear')
 
         elif user_options == '2':
             csv_path = input("Please enter the path of the CSV file: ")
             stocks = stock_data.Get_Stock_History(
                 today_folder, None, start_date, today)
             stocks.load_and_preprocess_csv(csv_path)
-            os.system('cls')
+            os.system('clear')
         elif user_options == '3':
             # processed_data_path = input("Please enter the path of the processed data CSV file: ")
             processed_data_path = '/root/home/git/2008-03-23/aapl_edited.csv'
@@ -66,7 +64,7 @@ def main():
 
             stocks.train_evaluate_and_predict(
                 processed_df, close_column_index, symbol, csv_cleaner, today_folder)
-            os.system('cls')
+            os.system('clear')
         elif user_options == '4':
             model_path = input(
                 "Please enter the path of the saved model file: ")
@@ -74,7 +72,7 @@ def main():
                 model_path, cleaned_df, close_column_index, symbol, today_folder)
             lstm_model.evaluate()
 
-            os.system('cls')
+            os.system('clear')
         else:
             loop = 1
 

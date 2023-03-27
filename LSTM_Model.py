@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=500, num_features=None, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=100, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
@@ -36,6 +36,7 @@ class LSTMModel:
             len(self.scaled_data) * self.train_test_split_ratio)
         self.x_train = []
         self.y_train = []
+
         for i in range(self.num_time_steps, num_training_samples):
             self.x_train.append(self.scaled_data[i - self.num_time_steps:i, :])
             # use the close price as the label
@@ -45,6 +46,7 @@ class LSTMModel:
 
         self.x_test = []
         self.y_test = []
+
         for i in range(num_training_samples, len(self.scaled_data)):
             self.x_test.append(self.scaled_data[i - self.num_time_steps:i, :])
             # use the close price as the label
@@ -56,6 +58,7 @@ class LSTMModel:
             self.x_train, (self.x_train.shape[0], self.x_train.shape[1], self.num_features))
         self.x_test = np.reshape(
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
+
         return self.x_train, self.y_train, self.x_test, self.y_test
 
     def build_model(self):
@@ -69,16 +72,17 @@ class LSTMModel:
             self.model.add(Dense(units=3))  # Change the output size to 3
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
-        self.model.save(f'{self.symbol}.h5')
+        self.model.save(f'{self.today_folder}/{self.symbol}.h5')
 
     def train(self, num_epochs=1, batch_size=64):
-        log_dir = "logs/fit"
+        log_dir = f"{self.today_folder}/logs/fit"
         tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
         # Train the model
+        print("Shape of x_train before reshaping:", self.x_train.shape)
+
         with tf.device('/gpu:0'):
-            self.model.fit(self.x_train, self.y_train,
-                           epochs=num_epochs, batch_size=batch_size,
-                           callbacks=[tensorboard_callback])
+            self.model.fit(self.x_train, self.y_train, epochs=num_epochs,
+                           batch_size=batch_size, callbacks=[tensorboard_callback])
 
     @classmethod
     def load_model(cls, model_path, cleaned_df, close_column_index, symbol, today_folder):
@@ -89,7 +93,8 @@ class LSTMModel:
         return lstm_model_instance
 
     def evaluate(self):
-        self.model = keras.models.load_model(f'{self.symbol}.h5')
+        self.model = keras.models.load_model(
+            f'{self.today_folder}/{self.symbol}.h5')
         with tf.device('/gpu:0'):
             self.test_loss = self.model.evaluate(self.x_test, self.y_test)
             self.test_predictions = self.model.predict(self.x_test)
@@ -121,19 +126,19 @@ class LSTMModel:
         with tf.device('/gpu:0'):
             future_close_prices_scaled = self.model.predict(x_input)
 
-        # Create a dummy array with the same shape as the input for inverse_transform
-        dummy_array = np.zeros((3, self.num_features))
-        closing_price_column_index = self.df.columns.get_loc('close')
-        dummy_array[:, closing_price_column_index] = future_close_prices_scaled
+            # Create a dummy array with the same shape as the input for inverse_transform
+            dummy_array = np.zeros((len(prediction_days), self.num_features))
+            closing_price_column_index = self.df.columns.get_loc('close')
+            dummy_array[:, closing_price_column_index] = future_close_prices_scaled
 
-        # Apply inverse_transform on the dummy array
-        future_close_prices = self.scaler.inverse_transform(
-            dummy_array)[:, closing_price_column_index]
+            # Apply inverse_transform on the dummy array
+            future_close_prices = self.scaler.inverse_transform(
+                dummy_array)[:, closing_price_column_index]
 
-        predictions = {}
-        for days, future_close_price in zip(prediction_days, future_close_prices):
-            most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
-            prediction = 1 if future_close_price > most_recent_close_price else 2
-            predictions[days] = (prediction, future_close_price)
+            predictions = {}
+            for days, future_close_price in zip(prediction_days, future_close_prices):
+                most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
+                prediction = 1 if future_close_price > most_recent_close_price else 2
+                predictions[days] = (prediction, future_close_price)
 
         return predictions

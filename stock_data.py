@@ -29,7 +29,7 @@ class Get_Stock_History:
 
     def download_stock_history(self, symbol):
         ticker = yf.Ticker(symbol)
-        tik_history = ticker.history(period='15y', interval='1d')
+        tik_history = ticker.history(period='1y', interval='1d')
         filename = os.path.join(self.path, f'{symbol}.csv')
         if not os.path.exists(filename):
             tik_history.to_csv(filename)
@@ -84,25 +84,26 @@ class Get_Stock_History:
         # Evaluate the model
         lstm_model.evaluate()
 
-        # Use the predict_future_close_price function from the LSTMModel class
+        # Get the predictions
         prediction_days = [1, 5, 20]
         predictions = lstm_model.predict_future_close_price(
             csv_cleaner, prediction_days)
-        prediction_1_day, future_close_price_1_day = predictions[1]
-        prediction_5_day, future_close_price_5_day = predictions[5]
-        prediction_20_day, future_close_price_20_day = predictions[20]
 
-        # Add the prediction results to the DataFrame
-        csv_cleaner.df.loc[pd.Timestamp.now(
-        ), '1 day predict'] = prediction_1_day
-        csv_cleaner.df.loc[pd.Timestamp.now(
-        ), '5 day predict'] = prediction_5_day
-        csv_cleaner.df.loc[pd.Timestamp.now(
-        ), '20 day predict'] = prediction_20_day
+        # Transform predictions dictionary to a list of tuples
+        predictions_list = [(pd.Timestamp.now(), days, pred[0], pred[1])
+                            for days, pred in predictions.items()]
 
-        # Save the DataFrame to a new CSV file
-        data_with_predictions = csv_cleaner.df.to_csv(
-            f'{symbol}_Predictions_with_Data.csv', index=True)
+        # Create a new DataFrame for the predictions
+        predictions_df = pd.DataFrame(predictions_list, columns=[
+                                      'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
 
-        # Return the data with predictions
-        return data_with_predictions
+        # Add the symbol to the predictions DataFrame
+        predictions_df['symbol'] = symbol
+
+        # Rearrange the columns in the desired order
+        predictions_df = predictions_df[[
+            'symbol', 'timestamp', 'prediction_days', 'prediction', 'future_close_price']]
+
+        # Save the predictions DataFrame to a new CSV file
+        predictions_df.to_csv(
+            f'{self.today_folder}/{symbol}_Predictions_Separate.csv', index=False)

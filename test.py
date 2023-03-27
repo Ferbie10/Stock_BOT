@@ -1,127 +1,81 @@
-import os
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-import tensorflow as tf
-from tensorflow.keras.callbacks import TensorBoard
-import keras
+import LSTM_Model
 import datetime
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import os
+import keras
+import stock_data
+import pandas as pd
+import dataPrep
 
 
-class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=1000, num_features=None, num_hidden_units=50):
-        self.df = cleaned_df
-        self.train_test_split_ratio = train_test_split_ratio
-        self.num_time_steps = num_time_steps
-        self.num_features = num_features if num_features else len(
-            self.df.columns)
+def main():
 
-        self.num_hidden_units = num_hidden_units
-        self.close_column_index = close_column_index
-        self.symbol = symbol
-        self.today_folder = today_folder
+    url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+   
+    loop = 0
+    while loop == 0:
+        user_options = input(
+            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
+        if user_options == '1':
+            indivdual_or_list = int(
+                input("Enter 1 for individual stock or 2 for stock index:  "))
+            if indivdual_or_list == 1:
+                stock_list = input("Please enter the stock Symbol:  ")
+                single_stock = stock_data.Get_Stock_History(
+                    today_folder, stock_list, start_date)
+                normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
+                    stock_list)
+                single_stock.train_evaluate_and_predict(
+                    normalized_df, close_column_index, stock_list, csv_cleaner, today_folder)
 
-    def preprocess(self):
-        if 'symbol' in self.df.columns:
-            self.df.drop(columns=['symbol'], inplace=True)
-        # Normalize the data using MinMaxScaler
-        self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.scaled_data = self.scaler.fit_transform(self.df)
+            else:
+                index_url = input("Please enter the URL of the Index List:   ")
+                Complist = dataPrep.Get_SP500(url)
+                stock_list = Complist.download()
+                stocks = dataPrep.Get_Stock_History(
+                    today_folder, stock_list, start_date, today)
+                stocks.compstockdata()
+            os.system('clear')
 
-        # Split the data into training and testing sets
-        num_training_samples = int(
-            len(self.scaled_data) * self.train_test_split_ratio)
-        self.x_train = []
-        self.y_train = []
-        for i in range(self.num_time_steps, num_training_samples):
-            self.x_train.append(self.scaled_data[i - self.num_time_steps:i, :])
-            # use the close price as the label
-            self.y_train.append(self.scaled_data[i, self.close_column_index])
-        self.x_train, self.y_train = np.array(
-            self.x_train), np.array(self.y_train)
+        elif user_options == '2':
+            csv_path = input("Please enter the path of the CSV file: ")
+            stocks = stock_data.Get_Stock_History(
+                today_folder, None, start_date, today)
+            stocks.load_and_preprocess_csv(csv_path)
+            os.system('clear')
+        elif user_options == '3':
+            # processed_data_path = input("Please enter the path of the processed data CSV file: ")
+            processed_data_path = '/root/home/git/2008-03-23/aapl_edited.csv'
+            ticker = processed_data_path.split(
+                "/")[-1].replace("_edited.csv", "")
 
-        self.x_test = []
-        self.y_test = []
-        for i in range(num_training_samples, len(self.scaled_data)):
-            self.x_test.append(self.scaled_data[i - self.num_time_steps:i, :])
-            # use the close price as the label
-            self.y_test.append(self.scaled_data[i, self.close_column_index])
-        self.x_test, self.y_test = np.array(self.x_test), np.array(self.y_test)
+            stocks = stock_data.Get_Stock_History(
+                today_folder, ticker, start_date)
+            processed_df, close_column_index, symbol, csv_cleaner = stocks.load_processed_data(
+                processed_data_path)
+
+            stocks.train_evaluate_and_predict(
+                processed_df, close_column_index, symbol, csv_cleaner, today_folder)
+            os.system('clear')
+        elif user_options == '4':
+            model_path = input(
+                "Please enter the path of the saved model file: ")
+            lstm_model = LSTM_Model.LSTMModel.load_model(
+                model_path, cleaned_df, close_column_index, symbol, today_folder)
+            lstm_model.evaluate()
+
+            os.system('clear')
+        else:
+            loop = 1
+def date(symbol, year,interval):
+    today = datetime.date.today()
+    years_past = year
+    start_year = today.year - years_past
+    start_date = datetime.date(start_year, today.month, today.day)
+    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
+    if not os.path.exists(today_folder):
+        os.makedirs(today_folder)
+    elif os.path.exists(today_folder):
+        pass
 
 
-        # Reshape the data for use with an LSTM model
-        self.x_train = np.reshape(
-            self.x_train, (self.x_train.shape[0], self.x_train.shape[1], self.num_features))
-        self.x_test = np.reshape(
-            self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
-        return self.x_train, self.y_train, self.x_test, self.y_test
-
-    def build_model(self):
-        with tf.device('/gpu:0'):
-            self.model = Sequential()
-            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(
-                self.num_time_steps, self.num_features)))
-            self.model.add(
-                LSTM(units=self.num_hidden_units, return_sequences=True))
-            self.model.add(LSTM(units=self.num_hidden_units))
-            self.model.add(Dense(units=3))  # Change the output size to 3
-
-        self.model.compile(optimizer='adam', loss='mean_squared_error')
-        self.model.save(f'{self.symbol}.h5')
-
-    def train(self, num_epochs=300, batch_size=64):
-        log_dir = "logs/fit"
-        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-        # Train the model
-        with tf.device('/gpu:0'):
-            self.model.fit(self.x_train, self.y_train,
-                           epochs=num_epochs, batch_size=batch_size,
-                           callbacks=[tensorboard_callback])
-
-    @classmethod
-    def load_model(cls, model_path, cleaned_df, close_column_index, symbol, today_folder):
-        model = keras.models.load_model(model_path)
-        lstm_model_instance = cls(cleaned_df, close_column_index, symbol, today_folder)
-        lstm_model_instance.model = model
-        return lstm_model_instance
-
-    def evaluate(self, x_test, y_test):
-        self.model = keras.models.load_model(f'{self.symbol}.h5')
-        with tf.device('/gpu:0'):
-            self.test_loss = self.model.evaluate(self.x_test, self.y_test)
-            self.test_predictions = self.model.predict(self.x_test)
-
-            # Create a dummy array with the same shape as the test set
-            dummy_array = np.zeros_like(self.x_test[:, -1, :])
-            dummy_array[:, self.close_column_index] = self.test_predictions
-
-            # Apply inverse_transform on the dummy array
-            self.test_predictions = self.scaler.inverse_transform(dummy_array)[:, self.close_column_index]
-
-    def get_predictions(self):
-        # Return the predictions on the test data
-        return self.test_predictions
-
-    def predict_future_close_price(self, csv_cleaner, prediction_days):
-        last_n_days_data = csv_cleaner.df[-self.num_time_steps:]
-        last_n_days_data_numeric = last_n_days_data.select_dtypes(
-            include=np.number)
-        scaled_last_n_days_data = self.scaler.transform(
-            last_n_days_data_numeric)
-        x_input = np.array(scaled_last_n_days_data).reshape(
-            1, self.num_time_steps, self.num_features)
-
-        with tf.device('/gpu:0'):
-            future_close_prices_scaled = self.model.predict(x_input)
-
-        future_close_prices = self.scaler.inverse_transform(
-            future_close_prices_scaled)[0]
-
-        future_close_price = future_close_prices[self.prediction_days - 1]
-        most_recent_close_price = csv_cleaner.df.iloc[-1]['close']
-        prediction = 1 if future_close_price > most_recent_close_price else 2
-
-        return prediction, future_close_price
+main()
