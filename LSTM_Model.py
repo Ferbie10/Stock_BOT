@@ -11,7 +11,7 @@ import datetime
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
-class LSTMModel:
+class LSTMModel(HyperModel):
     def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=100, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
@@ -60,19 +60,23 @@ class LSTMModel:
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
         return self.x_train, self.y_train, self.x_test, self.y_test
+#unused for the time being
+    def build_model(self, hp=None):
+        if hp is None:
+            num_hidden_units = self.num_hidden_units
+        else:
+            num_hidden_units = hp.Int('num_hidden_units', min_value=32, max_value=128, step=16)
 
-    def build_model(self):
         with tf.device('/gpu:0'):
             self.model = Sequential()
-            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(
+            self.model.add(LSTM(units=num_hidden_units, return_sequences=True, input_shape=(
                 self.num_time_steps, self.num_features)))
-            self.model.add(
-                LSTM(units=self.num_hidden_units, return_sequences=True))
-            self.model.add(LSTM(units=self.num_hidden_units))
+            self.model.add(LSTM(units=num_hidden_units, return_sequences=True))
+            self.model.add(LSTM(units=num_hidden_units))
             self.model.add(Dense(units=3))  # Change the output size to 3
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')
-        self.model.save(f'{self.today_folder}/{self.symbol}.h5')
+
 
     def train(self, num_epochs=1, batch_size=64):
         log_dir = f"{self.today_folder}/logs/fit"

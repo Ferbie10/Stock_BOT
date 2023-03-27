@@ -68,10 +68,10 @@ def main():
                 # interval = input("Please enter the intervel: ")
                 years = 1
                 interval = 1
+                
                 tickers = ss.get_symbol_list(
                     index=index_url, symbols_only=True)
                 today_folder = date(years, parent)
-                print(tickers)
                 for symbol in tickers:
                     stockfolder = stock_folder(symbol, today_folder)
                     single_stock = stock_data.Get_Stock_History(
@@ -80,6 +80,8 @@ def main():
                         years, interval)
                     single_stock.train_evaluate_and_predict(
                         normalized_df, close_column_index, csv_cleaner)
+                
+
             os.system('clear')
 
         elif user_options == '2':
