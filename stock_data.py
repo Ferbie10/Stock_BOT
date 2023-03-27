@@ -30,7 +30,10 @@ class Get_Stock_History:
         ticker = yf.Ticker(self.symbol)
         tik_history = ticker.history(
             period=f'{year}y', interval=f'{interval}d')
+        print(self.path)
+        print(self.symbol)
         filename = os.path.join(self.path, f'{self.symbol}.csv')
+        print(filename)
         if not os.path.exists(filename):
             tik_history.to_csv(filename)
         return filename
@@ -48,9 +51,9 @@ class Get_Stock_History:
         return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner
 
     def download_and_preprocess_data(self, years, interval):
-        filename = self.download_stock_history(self.symbol, years, interval)
+        filename = self.download_stock_history(years, interval)
         normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
-            filename, self.symbol)
+            filename)
         return normalized_df, close_column_index, csv_cleaner
 
     def process_existing_data(self, filename):
@@ -69,9 +72,9 @@ class Get_Stock_History:
 
         return processed_df, close_column_index, self.symbol, csv_cleaner
 
-    def train_evaluate_and_predict(self, normalized_df, close_column_index,  csv_cleaner, today_folder, model_filepath=None):
+    def train_evaluate_and_predict(self, normalized_df, close_column_index,  csv_cleaner, model_filepath=None):
         lstm_model = LSTM_Model.LSTMModel(
-            cleaned_df=normalized_df, close_column_index=close_column_index, symbol = self.symbol, today_folder= stockfolder)
+            cleaned_df=normalized_df, close_column_index=close_column_index, symbol=self.symbol, today_folder=self.path)
 
         if model_filepath:
             # Load the saved model
@@ -107,4 +110,4 @@ class Get_Stock_History:
 
         # Save the predictions DataFrame to a new CSV file
         predictions_df.to_csv(
-            f'{today_folder}/{self.symbol}_Predictions_Separate.csv', index=False)
+            f'{self.path}/{self.symbol}_Predictions_Separate.csv', index=False)

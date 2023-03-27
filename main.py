@@ -28,6 +28,7 @@ def stock_folder(symbol, path):
         os.mkdir(filename)
     else:
         pass
+    return filename
 
 
 def main():
@@ -35,23 +36,27 @@ def main():
 
     loop = 0
     while loop == 0:
-        user_options = input(
-            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
+        # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
+        user_options = '1'
         if user_options == '1':
-            indivdual_or_list = int(
-                input("Enter 1 for individual stock or 2 for stock index:  "))
+            # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
+            indivdual_or_list = 1
             if indivdual_or_list == 1:
-                stock_list = input("Please enter the stock Symbol:  ")
-                years = input("Enter the number of years: ")
-                interval = input("Please enter the intervel: ")
+                # stock_list = input("Please enter the stock Symbol:  ")
+                stock_list = 'aapl'
+                # years = input("Enter the number of years: ")
+                years = 1
+                interval = 1
+                # interval = input("Please enter the intervel: ")
                 today_folder = date(years, parent)
                 stockfolder = stock_folder(stock_list, today_folder)
                 single_stock = stock_data.Get_Stock_History(
                     stockfolder, stock_list)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
-                    stock_list, years, interval)
+                    years, interval)
                 single_stock.train_evaluate_and_predict(
-                    normalized_df, close_column_index, csv_cleaner, stock_list, stockfolder)
+                    normalized_df, close_column_index, csv_cleaner)
+                loop = 1
 
             else:
                 index_url = input(
