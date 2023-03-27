@@ -6,6 +6,9 @@ import stock_data
 import pandas as pd
 import dataPrep
 import yfinance as yf
+from stocksymbol import StockSymbol
+api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
+ss = StockSymbol(api_key)
 
 
 def date(year, parent):
@@ -60,12 +63,13 @@ def main():
 
             else:
                 # index_url = input("Please enter the Ticker symbol of the ETF List:   ")
-                index_url = 'SPY'
+                index_url = 'SPX'
                 # years = input("Enter the number of years: ")
                 # interval = input("Please enter the intervel: ")
                 years = 1
                 interval = 1
-                tickers = yf.Tickers(index_url).tickers
+                tickers = ss.get_symbol_list(
+                    index=index_url, symbols_only=True)
                 today_folder = date(years, parent)
                 print(tickers)
                 for symbol in tickers:
