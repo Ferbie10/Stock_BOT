@@ -13,10 +13,9 @@ import datetime
 
 
 class Get_Stock_History:
-    def __init__(self, path, symbol, start_date):
+    def __init__(self, path, symbol):
         self.path = path
-        self.self.symbol = self.symbol
-        self.start_date = start_date
+        self.symbol = symbol
 
     def normalize_stock_data(self, df):
         # Select only numeric columns
@@ -36,12 +35,12 @@ class Get_Stock_History:
             tik_history.to_csv(filename)
         return filename
 
-    def preprocess_stock_data(self):
+    def preprocess_stock_data(self, filename):
         output_file_path = os.path.join(self.path, f'{self.symbol}_edited.csv')
 
         # Call CSV cleaner for the newly created file
         csv_cleaner = dataPrep.CSVCleaner(
-            self.path, output_file_path, self.symbol)
+            filename, output_file_path, self.symbol)
         csv_cleaner.clean()
         csv_cleaner.transform(output_file_path)
         normalized_df, scaler = self.normalize_stock_data(csv_cleaner.df)
@@ -72,7 +71,7 @@ class Get_Stock_History:
 
     def train_evaluate_and_predict(self, normalized_df, close_column_index,  csv_cleaner, today_folder, model_filepath=None):
         lstm_model = LSTM_Model.LSTMModel(
-            cleaned_df=normalized_df, close_column_index=close_column_index, self.symbol, today_folder=today_folder)
+            cleaned_df=normalized_df, close_column_index=close_column_index, symbol = self.symbol, today_folder= stockfolder)
 
         if model_filepath:
             # Load the saved model

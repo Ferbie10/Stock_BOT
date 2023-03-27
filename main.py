@@ -8,9 +8,9 @@ import dataPrep
 import pandas_datareader as pdr
 
 
-def date(year):
+def date(year, parent):
     today = datetime.date.today()
-    years_past = year
+    years_past = int(year)
     start_year = today.year - years_past
     start_date = datetime.date(start_year, today.month, today.day)
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
@@ -24,7 +24,7 @@ def date(year):
 def stock_folder(symbol, path):
 
     filename = os.path.join(path, f'{symbol}')
-    if not os.exists(filename):
+    if not os.path.exists(filename):
         os.mkdir(filename)
     else:
         pass
@@ -44,17 +44,18 @@ def main():
                 stock_list = input("Please enter the stock Symbol:  ")
                 years = input("Enter the number of years: ")
                 interval = input("Please enter the intervel: ")
-                today_folder = date(years)
-                stockfolder = stock_folder(symbol, today_folder)
+                today_folder = date(years, parent)
+                stockfolder = stock_folder(stock_list, today_folder)
                 single_stock = stock_data.Get_Stock_History(
-                    stockfolder, stock_list, start_date)
+                    stockfolder, stock_list)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                     stock_list, years, interval)
                 single_stock.train_evaluate_and_predict(
-                    normalized_df, close_column_index, stock_list, csv_cleaner, stockfolder)
+                    normalized_df, close_column_index, csv_cleaner, stock_list, stockfolder)
 
             else:
-                index_url = input("Please enter the Ticker symbol of the ETF List:   ")
+                index_url = input(
+                    "Please enter the Ticker symbol of the ETF List:   ")
                 years = input("Enter the number of years: ")
                 interval = input("Please enter the intervel: ")
                 tickers = pdr.get_data_yahoo(index_url).index.tolist()
@@ -62,11 +63,11 @@ def main():
                 for symbol in tickers:
                     stockfolder = stock_folder(symbol, today_folder)
                     single_stock = stock_data.Get_Stock_History(
-                    stockfolder, symbol, start_date)
+                        stockfolder, symbol)
                     normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
-                     years, interval)
+                        years, interval)
                     single_stock.train_evaluate_and_predict(
-                    normalized_df, close_column_index, symbol, csv_cleaner, stockfolder)
+                        normalized_df, close_column_index, symbol, csv_cleaner, stockfolder)
             os.system('clear')
 
         elif user_options == '2':
