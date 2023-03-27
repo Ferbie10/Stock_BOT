@@ -64,7 +64,7 @@ def main():
                     single_stock = stock_data.Get_Stock_History(
                     stockfolder, symbol, start_date)
                     normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
-                    symbol, years, interval)
+                     years, interval)
                     single_stock.train_evaluate_and_predict(
                     normalized_df, close_column_index, symbol, csv_cleaner, stockfolder)
             os.system('clear')
