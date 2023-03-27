@@ -7,12 +7,9 @@ import pandas as pd
 import dataPrep
 
 
-def main():
-    parent = '/root/home/git/'
-
-    url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+def date(year):
     today = datetime.date.today()
-    years_past = 5
+    years_past = year
     start_year = today.year - years_past
     start_date = datetime.date(start_year, today.month, today.day)
     today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
@@ -20,6 +17,22 @@ def main():
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
         pass
+    return today_folder
+
+
+def stock_folder(stock_list, path):
+
+    for symbol in stock_list:
+        filename = os.path.join(path, f'{symbol}')
+        if not os.exists(filename):
+            os.mkdir(filename)
+        else:
+            pass
+
+
+def main():
+    parent = '/root/home/git/'
+
     loop = 0
     while loop == 0:
         user_options = input(
@@ -29,12 +42,16 @@ def main():
                 input("Enter 1 for individual stock or 2 for stock index:  "))
             if indivdual_or_list == 1:
                 stock_list = input("Please enter the stock Symbol:  ")
+                years = input("Enter the number of years: ")
+                interval = input("Please enter the intervel: ")
+                today_folder = date(years)
+                stockfolder = stock_folder(stock_list, today_folder)
                 single_stock = stock_data.Get_Stock_History(
-                    today_folder, stock_list, start_date)
+                    stockfolder, stock_list, start_date)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
-                    stock_list)
+                    stock_list, years, interval)
                 single_stock.train_evaluate_and_predict(
-                    normalized_df, close_column_index, stock_list, csv_cleaner, today_folder)
+                    normalized_df, close_column_index, stock_list, csv_cleaner, stockfolder)
 
             else:
                 index_url = input("Please enter the URL of the Index List:   ")

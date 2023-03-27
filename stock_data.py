@@ -13,9 +13,9 @@ import datetime
 
 
 class Get_Stock_History:
-    def __init__(self, path, sp500, start_date):
+    def __init__(self, path, stocks, start_date):
         self.path = path
-        self.sp500 = sp500
+        self.stocks = stocks
         self.start_date = start_date
 
     def normalize_stock_data(self, df):
@@ -27,9 +27,10 @@ class Get_Stock_History:
             scaled_data, columns=numeric_df.columns, index=numeric_df.index)
         return normalized_df, scaler
 
-    def download_stock_history(self, symbol):
+    def download_stock_history(self, symbol, year, interval):
         ticker = yf.Ticker(symbol)
-        tik_history = ticker.history(period='1y', interval='1d')
+        tik_history = ticker.history(
+            period=f'{year}y', interval=f'{interval}d')
         filename = os.path.join(self.path, f'{symbol}.csv')
         if not os.path.exists(filename):
             tik_history.to_csv(filename)
@@ -46,8 +47,8 @@ class Get_Stock_History:
 
         return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner
 
-    def download_and_preprocess_data(self, symbol):
-        filename = self.download_stock_history(symbol)
+    def download_and_preprocess_data(self, symbol, years, interval):
+        filename = self.download_stock_history(symbol, years, interval)
         normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
             filename, symbol)
         return normalized_df, close_column_index, csv_cleaner
@@ -106,4 +107,4 @@ class Get_Stock_History:
 
         # Save the predictions DataFrame to a new CSV file
         predictions_df.to_csv(
-            f'{self.today_folder}/{symbol}_Predictions_Separate.csv', index=False)
+            f'{today_folder}/{symbol}_Predictions_Separate.csv', index=False)
