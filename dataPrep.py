@@ -19,7 +19,9 @@ class CSVCleaner:
 
     def clean(self):
         # Remove unnecessary columns and rename columns
-        self.df.drop(columns=['Dividends', 'Stock Splits'], inplace=True)
+        if 'Dividends' in self.df.columns or 'Stock Splits' in self.df.columns:
+            self.df.drop(columns=['Dividends', 'Stock Splits'], inplace=True)
+
         self.df.rename(columns={'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'},
                        inplace=True)
 

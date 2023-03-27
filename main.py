@@ -5,7 +5,7 @@ import keras
 import stock_data
 import pandas as pd
 import dataPrep
-import pandas_datareader as pdr
+import yfinance as yf
 
 
 def date(year, parent):
@@ -40,7 +40,7 @@ def main():
         user_options = '1'
         if user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
-            indivdual_or_list = 1
+            indivdual_or_list = 2
             if indivdual_or_list == 1:
                 # stock_list = input("Please enter the stock Symbol:  ")
                 stock_list = 'aapl'
@@ -59,12 +59,15 @@ def main():
                 loop = 1
 
             else:
-                index_url = input(
-                    "Please enter the Ticker symbol of the ETF List:   ")
-                years = input("Enter the number of years: ")
-                interval = input("Please enter the intervel: ")
-                tickers = pdr.get_data_yahoo(index_url).index.tolist()
-                today_folder = date(years)
+                # index_url = input("Please enter the Ticker symbol of the ETF List:   ")
+                index_url = 'SPY'
+                # years = input("Enter the number of years: ")
+                # interval = input("Please enter the intervel: ")
+                years = 1
+                interval = 1
+                tickers = yf.Tickers(index_url).tickers
+                today_folder = date(years, parent)
+                print(tickers)
                 for symbol in tickers:
                     stockfolder = stock_folder(symbol, today_folder)
                     single_stock = stock_data.Get_Stock_History(
@@ -72,7 +75,7 @@ def main():
                     normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                         years, interval)
                     single_stock.train_evaluate_and_predict(
-                        normalized_df, close_column_index, symbol, csv_cleaner, stockfolder)
+                        normalized_df, close_column_index, csv_cleaner)
             os.system('clear')
 
         elif user_options == '2':
