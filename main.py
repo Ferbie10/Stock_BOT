@@ -5,6 +5,7 @@ import keras
 import stock_data
 import pandas as pd
 import dataPrep
+import pandas_datareader as pdr
 
 
 def date(year):
@@ -20,14 +21,13 @@ def date(year):
     return today_folder
 
 
-def stock_folder(stock_list, path):
+def stock_folder(symbol, path):
 
-    for symbol in stock_list:
-        filename = os.path.join(path, f'{symbol}')
-        if not os.exists(filename):
-            os.mkdir(filename)
-        else:
-            pass
+    filename = os.path.join(path, f'{symbol}')
+    if not os.exists(filename):
+        os.mkdir(filename)
+    else:
+        pass
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
                 years = input("Enter the number of years: ")
                 interval = input("Please enter the intervel: ")
                 today_folder = date(years)
-                stockfolder = stock_folder(stock_list, today_folder)
+                stockfolder = stock_folder(symbol, today_folder)
                 single_stock = stock_data.Get_Stock_History(
                     stockfolder, stock_list, start_date)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
@@ -54,12 +54,19 @@ def main():
                     normalized_df, close_column_index, stock_list, csv_cleaner, stockfolder)
 
             else:
-                index_url = input("Please enter the URL of the Index List:   ")
-                Complist = dataPrep.Get_SP500(url)
-                stock_list = Complist.download()
-                stocks = dataPrep.Get_Stock_History(
-                    today_folder, stock_list, start_date, today)
-                stocks.compstockdata()
+                index_url = input("Please enter the Ticker symbol of the ETF List:   ")
+                years = input("Enter the number of years: ")
+                interval = input("Please enter the intervel: ")
+                tickers = pdr.get_data_yahoo(index_url).index.tolist()
+                today_folder = date(years)
+                for symbol in tickers:
+                    stockfolder = stock_folder(symbol, today_folder)
+                    single_stock = stock_data.Get_Stock_History(
+                    stockfolder, symbol, start_date)
+                    normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
+                    symbol, years, interval)
+                    single_stock.train_evaluate_and_predict(
+                    normalized_df, close_column_index, symbol, csv_cleaner, stockfolder)
             os.system('clear')
 
         elif user_options == '2':
