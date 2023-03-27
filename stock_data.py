@@ -71,7 +71,7 @@ class Get_Stock_History:
 
         return processed_df, close_column_index, self.symbol, csv_cleaner
 
-     def train_evaluate_and_predict(self, normalized_df, close_column_index,  csv_cleaner, model_filepath=None):
+     def train_evaluate_and_predict(self, normalized_df, close_column_index, csv_cleaner, model_filepath=None):
         lstm_model = LSTM_Model.LSTMModel(
             cleaned_df=normalized_df, close_column_index=close_column_index, symbol=self.symbol, today_folder=self.path)
 
@@ -83,7 +83,7 @@ class Get_Stock_History:
             x_train, y_train, x_test, y_test = lstm_model.preprocess()
 
             tuner = RandomSearch(
-                lstm_model,
+                lambda hp: build_lstm_model(hp, lstm_model.num_time_steps, lstm_model.num_features),
                 objective='val_loss',
                 max_trials=10,
                 executions_per_trial=1,
@@ -94,10 +94,10 @@ class Get_Stock_History:
             tuner.search_space_summary()
 
             tuner.search(x_train, y_train,
-                         epochs=10,
-                         batch_size=64,
-                         validation_data=(x_test, y_test),
-                         callbacks=[TensorBoard(log_dir='./logs')])
+                        epochs=10,
+                        batch_size=64,
+                        validation_data=(x_test, y_test),
+                        callbacks=[TensorBoard(log_dir='./logs')])
 
             tuner.results_summary()
             best_model = tuner.get_best_models(num_models=1)[0]
@@ -118,14 +118,14 @@ class Get_Stock_History:
 
         # Create a new DataFrame for the predictions
         predictions_df = pd.DataFrame(predictions_list, columns=[
-                                      'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
+                                    'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
 
         # Add the self.symbol to the predictions DataFrame
-        predictions_df['symbol'] = self.symbol
+        predictions_df['self.symbol'] = self.symbol
 
         # Rearrange the columns in the desired order
         predictions_df = predictions_df[[
-            'symbol', 'timestamp', 'prediction_days', 'prediction', 'future_close_price']]
+            'self.symbol', 'timestamp', 'prediction_days', 'prediction', 'future_close_price']]
 
         # Save the predictions DataFrame to a new CSV file
         predictions_df.to_csv(
