@@ -8,19 +8,28 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import TensorBoard
 import keras
 import datetime
+from kerastuner import HyperModel
+from kerastuner.tuners import RandomSearch
+from tensorflow.keras import regularizers
+from tensorflow.keras.regularizers import L2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def build_lstm_model(hp, num_time_steps, num_features):
     model = Sequential()
-    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16), return_sequences=True, input_shape=(
-        num_time_steps, num_features)))
-    model.add(
-        LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16), return_sequences=True))
-    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16)))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   input_shape=(num_time_steps, num_features),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
     model.add(Dense(units=3))
 
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
+
 
 class LSTMModel:
     def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=100, num_features=None, num_hidden_units=50):

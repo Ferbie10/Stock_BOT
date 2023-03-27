@@ -121,11 +121,11 @@ class Get_Stock_History:
                                     'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
 
         # Add the self.symbol to the predictions DataFrame
-        predictions_df['self.symbol'] = self.symbol
+        predictions_df['symbol'] = self.symbol
 
         # Rearrange the columns in the desired order
         predictions_df = predictions_df[[
-            'self.symbol', 'timestamp', 'prediction_days', 'prediction', 'future_close_price']]
+            'symbol', 'timestamp', 'prediction_days', 'prediction', 'future_close_price']]
 
         # Save the predictions DataFrame to a new CSV file
         predictions_df.to_csv(
