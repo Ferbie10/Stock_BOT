@@ -10,6 +10,9 @@ from sklearn.preprocessing import MinMaxScaler
 import dataPrep
 import LSTM_Model
 import datetime
+from kerastuner.tuners import RandomSearch
+from LSTM_Model import build_lstm_model
+from tensorflow.keras.callbacks import TensorBoard
 
 
 class Get_Stock_History:
@@ -30,9 +33,11 @@ class Get_Stock_History:
         ticker = yf.Ticker(self.symbol)
         tik_history = ticker.history(
             period=f'{year}y', interval=f'{interval}d')
-        
+
+
         filename = os.path.join(self.path, f'{self.symbol}.csv')
-        
+
+
         if not os.path.exists(filename):
             tik_history.to_csv(filename)
         return filename
@@ -71,7 +76,9 @@ class Get_Stock_History:
 
         return processed_df, close_column_index, self.symbol, csv_cleaner
 
-     def train_evaluate_and_predict(self, normalized_df, close_column_index, csv_cleaner, model_filepath=None):
+
+    def train_evaluate_and_predict(self, normalized_df, close_column_index, csv_cleaner, model_filepath=None):
+
         lstm_model = LSTM_Model.LSTMModel(
             cleaned_df=normalized_df, close_column_index=close_column_index, symbol=self.symbol, today_folder=self.path)
 
@@ -83,25 +90,31 @@ class Get_Stock_History:
             x_train, y_train, x_test, y_test = lstm_model.preprocess()
 
             tuner = RandomSearch(
-                lambda hp: build_lstm_model(hp, lstm_model.num_time_steps, lstm_model.num_features),
+
+                lambda hp: build_lstm_model(hp, lstm_model.num_features),
                 objective='val_loss',
                 max_trials=10,
                 executions_per_trial=1,
-                directory='random_search',
+                directory=f'{self.path}/random_search',
+
                 project_name='hyperparameter_tuning'
             )
 
             tuner.search_space_summary()
 
             tuner.search(x_train, y_train,
-                        epochs=10,
-                        batch_size=64,
-                        validation_data=(x_test, y_test),
-                        callbacks=[TensorBoard(log_dir='./logs')])
+
+
+                         epochs=10,
+                         batch_size=64,
+                         validation_data=(x_test, y_test),
+                         callbacks=[TensorBoard(log_dir='./logs')])
 
             tuner.results_summary()
             best_model = tuner.get_best_models(num_models=1)[0]
-            best_model.save(f'{lstm_model.today_folder}/{lstm_model.symbol}.h5')
+            best_model.save(
+                f'{lstm_model.today_folder}/{lstm_model.symbol}.h5')
+
             lstm_model.model = best_model  # Update the model in lstm_model
 
         # Evaluate the model
@@ -118,7 +131,9 @@ class Get_Stock_History:
 
         # Create a new DataFrame for the predictions
         predictions_df = pd.DataFrame(predictions_list, columns=[
-                                    'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
+
+            'timestamp', 'prediction_days', 'prediction', 'future_close_price'])
+
 
         # Add the self.symbol to the predictions DataFrame
         predictions_df['symbol'] = self.symbol

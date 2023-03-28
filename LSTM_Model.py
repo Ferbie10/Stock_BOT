@@ -31,14 +31,31 @@ def build_lstm_model(hp, num_time_steps, num_features):
     return model
 
 
+def build_lstm_model(hp, num_features):
+    num_time_steps = hp.Int('num_time_steps', min_value=50, max_value=200, step=10)
+
+    model = Sequential()
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   input_shape=(num_time_steps, num_features),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(Dense(units=3))
+
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
+
+
 class LSTMModel:
-    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=100, num_features=None, num_hidden_units=50):
+    def __init__(self, cleaned_df, close_column_index, symbol, today_folder, train_test_split_ratio=0.8, num_time_steps=None, num_features=None, num_hidden_units=50):
         self.df = cleaned_df
         self.train_test_split_ratio = train_test_split_ratio
         self.num_time_steps = num_time_steps
-        self.num_features = num_features if num_features else len(
-            self.df.columns)
-
+        self.num_features = num_features if num_features else len(self.df.columns)
         self.num_hidden_units = num_hidden_units
         self.close_column_index = close_column_index
         self.symbol = symbol
@@ -80,7 +97,7 @@ class LSTMModel:
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
         return self.x_train, self.y_train, self.x_test, self.y_test
-#unused for the time being
+
 
     @classmethod
     def load_model(cls, model_path, cleaned_df, close_column_index, symbol, today_folder):
