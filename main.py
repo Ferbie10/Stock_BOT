@@ -14,45 +14,13 @@ api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
 ss = StockSymbol(api_key)
 
 
-def indicators(start_date, path):
-    indicator_series_ids = {'GDP': 'GDPC1', 'CPI': 'CPIAUCSL', 'PPI': 'PPIACO', 'UnemploymentRate': 'UNRATE',
-                            'ConsumerConfidence': 'UMCSENT', 'HousingStarts': 'HOUST', 'ExistingHomeSales': 'EXHOSLUSM495S', 'NewHomeSales': 'HSN1F'}
-    macro_indicators = MacroFact.DataFetcher(start_date)
-    all_indicators = macro_indicators.get_macro_indicators(
-        indicator_series_ids)
-    macro_indicators.save_to_csv(all_indicators, path, 'macro_indicators.csv')
-
-
-def date(year, parent):
-    today = datetime.date.today()
-    years_past = int(year)
-    start_year = today.year - years_past
-    start_date = datetime.date(start_year, today.month, today.day)
-    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
-    if not os.path.exists(today_folder):
-        os.makedirs(today_folder)
-    elif os.path.exists(today_folder):
-        pass
-    return today_folder, start_date
-
-
-def stock_folder(symbol, path):
-
-    filename = os.path.join(path, f'{symbol}')
-    if not os.path.exists(filename):
-        os.mkdir(filename)
-    else:
-        pass
-    return filename
-
-
 def main():
     parent = '/root/home/git/'
 
     loop = 0
     while loop == 0:
         # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
-        user_options = '1'
+        user_options = '3'
         if user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
             indivdual_or_list = 1
@@ -66,13 +34,16 @@ def main():
                 # interval = input("Please enter the intervel: ")
                 today_folder, start_date = date(years, parent)
                 stockfolder = stock_folder(stock_list, today_folder)
-                indicators(start_date, parent)
                 single_stock = stock_data.Get_Stock_History(
                     stockfolder, stock_list, start_date)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                     years, interval)
-                single_stock.train_evaluate_and_predict(
-                    normalized_df, close_column_index, csv_cleaner)
+
+                lstm_model = LSTM_Model.LSTMModel(
+                    normalized_df, close_column_index, symbol, today_folder)
+                model_path = model_save_path(stockfolder, stock_list)
+                lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
+
                 loop = 1
 
             else:
@@ -97,23 +68,27 @@ def main():
 
         elif user_options == '2':
             csv_path = input("Please enter the path of the CSV file: ")
-            stocks = stock_data.Get_Stock_History(
-                today_folder, None, start_date, today)
-            stocks.load_and_preprocess_csv(csv_path)
+            date, symbol, filename, desired_path = split_string(csv_path)
+            stocks = stock_data.Get_Stock_History(desired_path, symbol, date)
+            normalized_df, close_column_index, csv_cleaner = stocks.process_existing_data(
+                csv_path)
+            stocks.train_evaluate_and_predict(
+                normalized_df, close_column_index, csv_cleaner)
             os.system('clear')
         elif user_options == '3':
             # processed_data_path = input("Please enter the path of the processed data CSV file: ")
-            processed_data_path = '/root/home/git/2008-03-23/aapl_edited.csv'
-            ticker = processed_data_path.split(
-                "/")[-1].replace("_edited.csv", "")
-
-            stocks = stock_data.Get_Stock_History(
-                today_folder, ticker, start_date)
-            processed_df, close_column_index, symbol, csv_cleaner = stocks.load_processed_data(
+            processed_data_path = '/root/home/git/2008-03-28/aapl/aapl_edited.csv'
+            date, symbol, filename, desired_path = split_string(
                 processed_data_path)
+            stocks = stock_data.Get_Stock_History(desired_path, symbol, date)
+            processed_df, close_column_index, csv_cleaner = stocks.load_processed_data(
+                processed_data_path)
+            lstm_model = LSTM_Model.LSTMModel(
+                processed_df, close_column_index, symbol, desired_path)
+            model_path = model_save_path(desired_path,symbol)
 
-            stocks.train_evaluate_and_predict(
-                processed_df, close_column_index, symbol, csv_cleaner, today_folder)
+            lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
+
             os.system('clear')
         elif user_options == '4':
             model_path = input(
