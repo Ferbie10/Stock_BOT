@@ -8,7 +8,27 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import TensorBoard
 import keras
 import datetime
+from kerastuner import HyperModel
+from kerastuner.tuners import RandomSearch
+from tensorflow.keras import regularizers
+from tensorflow.keras.regularizers import L2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+def build_lstm_model(hp, num_time_steps, num_features):
+    model = Sequential()
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   input_shape=(num_time_steps, num_features),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   return_sequences=True,
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(LSTM(units=hp.Int('num_hidden_units', min_value=32, max_value=128, step=16),
+                   kernel_regularizer=L2(hp.Float('l2', 1e-5, 1e-3, sampling='log'))))
+    model.add(Dense(units=3))
+
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
 
 
 class LSTMModel:
@@ -60,29 +80,7 @@ class LSTMModel:
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
         return self.x_train, self.y_train, self.x_test, self.y_test
-
-    def build_model(self):
-        with tf.device('/gpu:0'):
-            self.model = Sequential()
-            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(
-                self.num_time_steps, self.num_features)))
-            self.model.add(
-                LSTM(units=self.num_hidden_units, return_sequences=True))
-            self.model.add(LSTM(units=self.num_hidden_units))
-            self.model.add(Dense(units=3))  # Change the output size to 3
-
-        self.model.compile(optimizer='adam', loss='mean_squared_error')
-        self.model.save(f'{self.today_folder}/{self.symbol}.h5')
-
-    def train(self, num_epochs=1, batch_size=64):
-        log_dir = f"{self.today_folder}/logs/fit"
-        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-        # Train the model
-        print("Shape of x_train before reshaping:", self.x_train.shape)
-
-        with tf.device('/gpu:0'):
-            self.model.fit(self.x_train, self.y_train, epochs=num_epochs,
-                           batch_size=batch_size, callbacks=[tensorboard_callback])
+#unused for the time being
 
     @classmethod
     def load_model(cls, model_path, cleaned_df, close_column_index, symbol, today_folder):

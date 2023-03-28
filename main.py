@@ -43,12 +43,12 @@ def main():
         user_options = '1'
         if user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
-            indivdual_or_list = 2
+            indivdual_or_list = 1
             if indivdual_or_list == 1:
                 # stock_list = input("Please enter the stock Symbol:  ")
                 stock_list = 'aapl'
                 # years = input("Enter the number of years: ")
-                years = 1
+                years = 5
                 interval = 1
                 # interval = input("Please enter the intervel: ")
                 today_folder = date(years, parent)
