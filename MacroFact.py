@@ -5,19 +5,23 @@ from newsapi import NewsApiClient
 from textblob import TextBlob
 # You will need to implement functions for fetching news sentiment and market events
 
+
 class DataFetcher:
     def __init__(self, start_date):
         self.start_date = start_date
-        self.fred_api_key = 'abcdefghijklmnopqrstuvwxyz123456'
+        self.fred_api_key = '41e39a39681b2f1afc8eccebac3295d8'
         self.fred = Fred(api_key=self.fred_api_key)
         self.news_api_key = '10b7b776ea5e44c69e47ff10d59fb865'
         self.news_api_client = NewsApiClient(api_key=self.news_api_key)
+
+    def get_indicator_data(self, series_id):
+        return self.fred.get_series(series_id, observation_start=self.start_date)
 
     def get_macro_indicators(self, indicator_series_ids):
         indicators_data = []
 
         for name, series_id in indicator_series_ids.items():
-            indicator_data = self.get_macro_indicators(series_id)
+            indicator_data = self.get_indicator_data(series_id)
             indicator_df = pd.DataFrame(indicator_data, columns=[name])
             indicators_data.append(indicator_df)
 
@@ -40,7 +44,8 @@ class DataFetcher:
         # Fetch news articles for the given ticker
         articles = self.news_api_client.get_everything(
             q=ticker,
-            from_param=(pd.Timestamp.now() - pd.Timedelta(days=days)).strftime('%Y-%m-%d'),
+            from_param=(pd.Timestamp.now() -
+                        pd.Timedelta(days=days)).strftime('%Y-%m-%d'),
             to=pd.Timestamp.now().strftime('%Y-%m-%d'),
             language='en',
             sort_by='relevancy'

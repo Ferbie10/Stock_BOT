@@ -15,11 +15,11 @@ ss = StockSymbol(api_key)
 
 
 def indicators(start_date, path):
-
     indicator_series_ids = {'GDP': 'GDPC1', 'CPI': 'CPIAUCSL', 'PPI': 'PPIACO', 'UnemploymentRate': 'UNRATE',
                             'ConsumerConfidence': 'UMCSENT', 'HousingStarts': 'HOUST', 'ExistingHomeSales': 'EXHOSLUSM495S', 'NewHomeSales': 'HSN1F'}
-    macro_indicators = MacroIndicators(start_date)
-    all_indicators = macro_indicators.get_all_indicators(indicator_series_ids)
+    macro_indicators = MacroFact.DataFetcher(start_date)
+    all_indicators = macro_indicators.get_macro_indicators(
+        indicator_series_ids)
     macro_indicators.save_to_csv(all_indicators, path, 'macro_indicators.csv')
 
 
