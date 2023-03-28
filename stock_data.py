@@ -7,12 +7,13 @@ import os
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from sklearn.preprocessing import MinMaxScaler
-import dataPrep
-import LSTM_Model
 import datetime
 from kerastuner.tuners import RandomSearch
 from LSTM_Model import build_lstm_model
 from tensorflow.keras.callbacks import TensorBoard
+import dataPrep
+import LSTM_Model
+from useful_functions import *
 
 
 class Get_Stock_History:
@@ -22,8 +23,7 @@ class Get_Stock_History:
         self.start_date = start_date
 
 
-    def save_to_csv(self, data, filename):
-        data.to_csv(filename, index=True)
+    
 
     def normalize_stock_data(self, df):
         # Select only numeric columns
@@ -39,24 +39,9 @@ class Get_Stock_History:
         tik_history = ticker.history(
             period=f'{year}y', interval=f'{interval}d')
 
-        filename = os.path.join(self.path, f'{self.symbol}.csv')
-
-        if not os.path.exists(filename):
-            tik_history.to_csv(filename)
+        filename = save_to_csv(tik_history,self.path, f'{self.symbol}.csv')
         return filename
-    def download_macro_indicators(self,):
-
-        indicator_series_ids = {
-        'GDP': 'GDPC1',
-        'CPI': 'CPIAUCSL',
-        'PPI': 'PPIACO',
-        'UnemploymentRate': 'UNRATE',
-        'ConsumerConfidence': 'UMCSENT',
-        'HousingStarts': 'HOUST',
-        'ExistingHomeSales': 'EXHOSLUSM495S',
-        'NewHomeSales': 'HSN1F'
-    }
-        
+    
 
     def preprocess_stock_data(self, filename):
         output_file_path = os.path.join(self.path, f'{self.symbol}_edited.csv')

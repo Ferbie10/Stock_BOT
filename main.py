@@ -7,8 +7,30 @@ import pandas as pd
 import dataPrep
 import yfinance as yf
 from stocksymbol import StockSymbol
+import MacroFact
+from useful_functions import *
+
 api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
 ss = StockSymbol(api_key)
+
+def indicators(start_date,path):
+
+     indicator_series_ids = {
+        'GDP': 'GDPC1',
+        'CPI': 'CPIAUCSL',
+        'PPI': 'PPIACO',
+        'UnemploymentRate': 'UNRATE',
+        'ConsumerConfidence': 'UMCSENT',
+        'HousingStarts': 'HOUST',
+        'ExistingHomeSales': 'EXHOSLUSM495S',
+        'NewHomeSales': 'HSN1F'
+    }
+    macro_indicators = MacroFact.DataFetcher(start_date)
+    all_indicators = macro_indicators.get_all_indicators(indicator_series_ids)
+    save_to_csv(data, filename)
+    save_to_csv(all_indicators, 'macro_indicators.csv')
+
+
 
 
 def date(year, parent):
