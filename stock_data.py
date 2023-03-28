@@ -16,9 +16,14 @@ from tensorflow.keras.callbacks import TensorBoard
 
 
 class Get_Stock_History:
-    def __init__(self, path, symbol):
+    def __init__(self, path, symbol,start_date):
         self.path = path
         self.symbol = symbol
+        self.start_date = start_date
+
+
+    def save_to_csv(self, data, filename):
+        data.to_csv(filename, index=True)
 
     def normalize_stock_data(self, df):
         # Select only numeric columns
@@ -39,6 +44,19 @@ class Get_Stock_History:
         if not os.path.exists(filename):
             tik_history.to_csv(filename)
         return filename
+    def download_macro_indicators(self,):
+
+        indicator_series_ids = {
+        'GDP': 'GDPC1',
+        'CPI': 'CPIAUCSL',
+        'PPI': 'PPIACO',
+        'UnemploymentRate': 'UNRATE',
+        'ConsumerConfidence': 'UMCSENT',
+        'HousingStarts': 'HOUST',
+        'ExistingHomeSales': 'EXHOSLUSM495S',
+        'NewHomeSales': 'HSN1F'
+    }
+        
 
     def preprocess_stock_data(self, filename):
         output_file_path = os.path.join(self.path, f'{self.symbol}_edited.csv')

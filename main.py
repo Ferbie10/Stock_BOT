@@ -21,7 +21,7 @@ def date(year, parent):
         os.makedirs(today_folder)
     elif os.path.exists(today_folder):
         pass
-    return today_folder
+    return today_folder, start_date
 
 
 def stock_folder(symbol, path):
@@ -51,10 +51,10 @@ def main():
                 years = 15
                 interval = 1
                 # interval = input("Please enter the intervel: ")
-                today_folder = date(years, parent)
+                today_folder, start_date = date(years, parent)
                 stockfolder = stock_folder(stock_list, today_folder)
                 single_stock = stock_data.Get_Stock_History(
-                    stockfolder, stock_list)
+                    stockfolder, stock_list,start_date)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                     years, interval)
                 single_stock.train_evaluate_and_predict(
@@ -71,11 +71,10 @@ def main():
                 tickers = ss.get_symbol_list(
                     index=index_url, symbols_only=True)
                 today_folder = date(years, parent)
-                print(tickers)
                 for symbol in tickers:
                     stockfolder = stock_folder(symbol, today_folder)
                     single_stock = stock_data.Get_Stock_History(
-                        stockfolder, symbol)
+                        stockfolder, symbol,start_date)
                     normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                         years, interval)
                     single_stock.train_evaluate_and_predict(
