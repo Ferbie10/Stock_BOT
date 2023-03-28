@@ -1,6 +1,5 @@
 import pandas as pd
 from fredapi import Fred
-from yahoo_fin import stock_info as si
 import yfinance as yf
 from newsapi import NewsApiClient
 from textblob import TextBlob
