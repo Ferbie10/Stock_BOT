@@ -86,8 +86,7 @@ class Get_Stock_History:
             x_train, y_train, x_test, y_test = lstm_model.preprocess()
 
             tuner = RandomSearch(
-                lambda hp: build_lstm_model(
-                    hp, lstm_model.num_time_steps, lstm_model.num_features),
+                lambda hp: build_lstm_model(hp, lstm_model.num_features),
                 objective='val_loss',
                 max_trials=10,
                 executions_per_trial=1,
@@ -101,7 +100,7 @@ class Get_Stock_History:
                          epochs=10,
                          batch_size=64,
                          validation_data=(x_test, y_test),
-                         callbacks=[TensorBoard(log_dir=f'{self.path}/logs')])
+                         callbacks=[TensorBoard(log_dir='./logs')])
 
             tuner.results_summary()
             best_model = tuner.get_best_models(num_models=1)[0]

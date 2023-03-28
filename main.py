@@ -48,7 +48,7 @@ def main():
                 # stock_list = input("Please enter the stock Symbol:  ")
                 stock_list = 'aapl'
                 # years = input("Enter the number of years: ")
-                years = 10
+                years = 15
                 interval = 1
                 # interval = input("Please enter the intervel: ")
                 today_folder = date(years, parent)
