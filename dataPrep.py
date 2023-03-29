@@ -39,7 +39,7 @@ class CSVCleaner:
         # Set date as index
         self.df.set_index('Date', inplace=True)
 
-    def transform(self, output_file_path):
+    def transform(self):
         # Calculate the 14-day RSI
         delta = self.df['close'].diff()
         gain = delta.where(delta > 0, 0)
@@ -82,9 +82,9 @@ class CSVCleaner:
                                            0)).cumsum()
         self.df.dropna(inplace=True)
         # Save the transformed data to a new CSV file
-        self.df.to_csv(output_file_path)
+        return self.df
 
-    def clean_fed(self, output_file_path):
+    def clean_fed(self):
         # Drop rows with missing values
 
         self.df.rename(columns={self.df.columns[0]: "Date"}, inplace=True)

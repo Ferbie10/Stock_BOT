@@ -89,17 +89,21 @@ def main():
             os.system('clear')
 
         elif user_options == '2':
-            csv_path = input("Please enter the path of the CSV file: ")
+            # csv_path = input("Please enter the path of the CSV file: ")
+            csv_path = '/root/home/git/Stocks/2018-03-29/aapl/aapl.csv'
             date, symbol, filename, desired_path = split_string(csv_path)
             stocks = stock_data.Get_Stock_History(desired_path, symbol, date)
+            output_file_name = 'aapl_edited.csv'
             normalized_df, close_column_index, csv_cleaner = stocks.process_existing_data(
-                csv_path)
-            stocks.train_evaluate_and_predict(
-                normalized_df, close_column_index, csv_cleaner)
+                csv_path, output_file_name)
+            lstm_model = LSTM_Model.LSTMModel(
+                normalized_df, close_column_index, symbol, desired_path)
+            model_path = model_save_path(desired_path, symbol)
+            lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
             os.system('clear')
         elif user_options == '3':
             # processed_data_path = input("Please enter the path of the processed data CSV file: ")
-            processed_data_path = '/root/home/git/2008-03-28/aapl/aapl_edited.csv'
+            processed_data_path = '/root/home/git/Stocks/2018-03-29/aapl/aapl_edited.csv'
             date, symbol, filename, desired_path = split_string(
                 processed_data_path)
             stocks = stock_data.Get_Stock_History(desired_path, symbol, date)

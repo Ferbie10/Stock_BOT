@@ -45,8 +45,8 @@ def build_lstm_model(hp, num_features):
     model.add(Dense(1))
 
     model.compile(optimizer=Adam(learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
-              loss='mean_squared_error',
-              metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
+                  loss='mean_squared_error',
+                  metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
 
     return model
 
@@ -70,6 +70,13 @@ class LSTMModel:
 
     def preprocess(self, seq_len):
         self.scaler = MinMaxScaler(feature_range=(0, 1))
+        column_name = 'symbol'
+        if column_name in self.df.columns:
+            # Drop the column
+            self.df = self.df.drop(column_name, axis=1)
+            print("Column dropped.")
+        else:
+            print("Column not found.")
         self.scaled_data = self.scaler.fit_transform(self.df)
         num_training_samples = int(len(self.scaled_data) * self.train_ratio)
 
@@ -96,7 +103,7 @@ class LSTMModel:
 
         return self.x_train, self.y_train, self.x_test, self.y_test
 
-    def search_best_hyperparameters(self, x_train, y_train, epochs, max_trials):
+    def search_best_hyperparameters(self, x_train, y_train, sequence_length, epochs, max_trials):
         def lstm_hypermodel(hp): return build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials,
@@ -105,6 +112,8 @@ class LSTMModel:
                      validation_split=0.2, verbose=2)
 
         best_hp = tuner.get_best_hyperparameters()[0]
+        # Save the sequence_length value in the best_hp object
+        best_hp.values['sequence_length'] = sequence_length
         return best_hp
 
     def fit_and_save_model(self, best_hp, x_train, y_train, epochs, model_path, tensorboard_callback):
@@ -114,25 +123,28 @@ class LSTMModel:
         best_batch_size = best_hp.get('batch_size', 32)
 
         self.model.fit(x_train, y_train, epochs=epochs,
-                    batch_size=best_batch_size, validation_split=0.2, verbose=2,
-                    callbacks=[tensorboard_callback])  # Add the callback here
+                       batch_size=best_batch_size, validation_split=0.2, verbose=2,
+                       callbacks=[tensorboard_callback])  # Add the callback here
 
         self.model.save(model_path)
 
-
-    def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=40, max_trials=20, epochs=100):
+    def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=10, max_trials=20, epochs=100):
         x_train, y_train, x_test, y_test = self.preprocess(seq_len)
-        best_hp = self.search_best_hyperparameters(x_train, y_train, epochs, max_trials)
-        
+        best_hp = self.search_best_hyperparameters(
+            x_train, y_train, seq_len, epochs, max_trials)  # Pass seq_len as an argument here
+
         # Create a TensorBoard callback
-        log_dir = os.path.join("logs", "fit", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+        log_dir = os.path.join(
+            "logs", "fit", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
         tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-        
-        self.fit_and_save_model(best_hp, x_train, y_train, epochs, model_path, tensorboard_callback)
+
+        self.fit_and_save_model(best_hp, x_train, y_train,
+                                epochs, model_path, tensorboard_callback)
         self.evaluate()
 
         prediction_days = [15, 30, 60, 90, 120]
-        future_predictions = self.predict_future_close_price(csv_cleaner, prediction_days)
+        future_predictions = self.predict_future_close_price(
+            csv_cleaner, prediction_days)
         return future_predictions
 
     @classmethod
