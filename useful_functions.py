@@ -14,8 +14,8 @@ def get_path_date(year, parent):
     return today_folder, start_date
 
 
-def save_to_csv(data, path):
-    full_path = os.path.join(path, filename)
+def save_to_csv(data, path, name):
+    full_path = os.path.join(path, name)
     if not os.path.exists(full_path):
         data.to_csv(full_path, index=True)
         print(f"File saved as: {full_path}")
@@ -24,14 +24,9 @@ def save_to_csv(data, path):
     return full_path
 
 
-def edited_csv(data, path, symbol):
-    full_path = os.path.join(path, f'{symbol}_edited.csv')
-    if not os.path.exists(full_path):
-        data.to_csv(full_path, index=True)
-        print(f"File saved as: {full_path}")
-    else:
-        print(f"File {full_path} already exists.")
-    return full_path
+def output_path(path, symbol):
+    output_path = os.path.join(path, f'{symbol}_edited.csv')
+    return output_path
 
 
 def split_string(path):
@@ -68,15 +63,25 @@ def indicators(start_date, path):
         'PPI': 'PPIACO',  # Producer Price Index for All Commodities
         'UnemploymentRate': 'UNRATE',  # Unemployment Rate
         'ConsumerConfidence': 'UMCSENT',  # University of Michigan: Consumer Sentiment
-        'Fed-Funds': 'FEDFUNDS'  # Effective Federal Funds Rate
+        'FedFunds': 'FEDFUNDS',  # Effective Federal Funds Rate
+        'GoodsTradeBalance': 'BOPGSTB',  # US Balance on Goods and Services Trade
+        'MonetaryBase': 'BASE',  # St. Louis Adjusted Monetary Base
+        'FederalDebt': 'GFDEBTN',  # Federal Debt: Total Public Debt
+        'FederalSurplusDeficit': 'MTSDS133FMS',  # Federal Surplus or Deficit
     }
-
-    # Create a MacroFact DataFetcher object with the given start date
     macro_indicators = DataFetcher(start_date)
-
-    # Fetch the macro indicators data for the specified series IDs
     all_indicators = macro_indicators.get_macro_indicators(
         indicator_series_ids)
+    name = 'macro_indicators.csv'
+    full_path = save_to_csv(all_indicators, path, name)
+    return full_path
 
-    # Save the fetched data to a CSV file
-    save_to_csv(all_indicators, path, 'macro_indicators.csv')
+
+def df_to_CSV(data, path, desire_name):
+    full_path = os.path.join(path, desire_name)
+    if not os.path.exists(full_path):
+        data.to_csv(full_path, index=True)
+        print(f"File saved as: {full_path}")
+    else:
+        print(f"File {full_path} already exists.")
+    return full_path

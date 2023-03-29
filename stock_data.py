@@ -15,7 +15,7 @@ class Get_Stock_History:
         self.symbol = symbol
         self.start_date = start_date
 
-    def normalize_stock_data(self,df):
+    def normalize_stock_data(self, df):
         # Select only numeric columns
         numeric_df = df.select_dtypes(include=np.number)
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -33,13 +33,13 @@ class Get_Stock_History:
         return filename
 
     def preprocess_stock_data(self, filename):
-        output_file_path = os.path.join(self.path, f'{self.symbol}_edited.csv')
+        output_file_path = output_path(self.path, self.symbol)
 
         # Call CSV cleaner for the newly created file
         csv_cleaner = dataPrep.CSVCleaner(
             filename, output_file_path, self.symbol)
         csv_cleaner.clean()
-        csv_cleaner.transform(output_file_path)
+        csv_cleaner.transform()
         normalized_df, scaler = self.normalize_stock_data(csv_cleaner.df)
 
         return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner

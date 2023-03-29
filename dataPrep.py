@@ -1,13 +1,14 @@
 import numpy as np
 import pandas as pd
+from useful_functions import *
 
 
 class CSVCleaner:
     def __init__(self, csv_file_path, path, symbol):
         self.df = pd.read_csv(csv_file_path)
         self.symbol = symbol
-        self.add_symbol()
-        self.path
+
+        self.path = path
 
     def add_symbol(self):
         if 'symbol' in self.df.columns:
@@ -83,11 +84,11 @@ class CSVCleaner:
         # Save the transformed data to a new CSV file
         self.df.to_csv(output_file_path)
 
-        def clean_fed(self):
-            # Drop rows with missing values
-            self.df = self.df.dropna()
+    def clean_fed(self, output_file_path):
+        # Drop rows with missing values
 
-            # Convert the date column to a datetime object
-            self.df['Date'] = pd.to_datetime(self.df[''])
-
-            edited_csv(self.df, self.path, self.symbol)
+        self.df.rename(columns={self.df.columns[0]: "Date"}, inplace=True)
+        self.df['Date'] = pd.to_datetime(self.df['Date'])
+        self.df.set_index('Date', inplace=True)
+        self.df.dropna(inplace=True)
+        self.df.to_csv(output_file_path)

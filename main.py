@@ -21,14 +21,25 @@ def main():
 
     loop = 0
     while loop == 0:
-        # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
-        user_options = '1'
-        csv_file_path = '/root/home/git/Stocks/Fed/macro_indicators.csv'
-        date, symbol, filename, desired_path = split_string(csv_file_path)
 
-        cleaned_fed = dataPrep.CSVCleaner(
-            csv_file_path, symbol)
-        if user_options == '1':
+        # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
+        user_options = '0'
+        if user_options == '0':
+            get_or_clean = '0'
+            if get_or_clean == '0':
+                csv_file_path = '/root/home/git/Stocks/Fed/'
+                date, symbol, filename, desired_path = split_string(
+                    csv_file_path)
+                start_date = '1913-01-01'
+                path_of_csv = indicators(start_date, csv_file_path)
+                fed_data = dataPrep.CSVCleaner(
+                    path_of_csv, csv_file_path, symbol='Fed')
+                output_file_path = output_path(desired_path, symbol)
+                fed_data.clean_fed(output_file_path)
+            else:
+                pass
+
+        elif user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
             indivdual_or_list = 1
             if indivdual_or_list == 1:
