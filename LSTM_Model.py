@@ -103,18 +103,19 @@ class LSTMModel:
 
         return self.x_train, self.y_train, self.x_test, self.y_test
 
-    def search_best_hyperparameters(self, x_train, y_train, sequence_length, epochs, max_trials):
+    def search_best_hyperparameters(self, x_train, y_train, epochs, max_trials):
         def lstm_hypermodel(hp): return build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials,
-                             seed=42, executions_per_trial=2, directory=self.path)
+                            seed=42, executions_per_trial=2, directory=self.path)
         tuner.search(x_train, y_train, epochs=epochs,
-                     validation_split=0.2, verbose=2)
+                    validation_split=0.2, verbose=2)
 
         best_hp = tuner.get_best_hyperparameters()[0]
-        # Save the sequence_length value in the best_hp object
-        best_hp.values['sequence_length'] = sequence_length
+        # No need to save the sequence_length value in the best_hp object
+        # best_hp.values['sequence_length'] = sequence_length
         return best_hp
+
 
     def fit_and_save_model(self, best_hp, x_train, y_train, epochs, model_path, tensorboard_callback):
         self.model = self.build_model(best_hp)
