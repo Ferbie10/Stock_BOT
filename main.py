@@ -17,12 +17,17 @@ ss = StockSymbol(api_key)
 
 
 def main():
-    parent = '/root/home/git/'
+    parent = '/root/home/git/Stocks'
 
     loop = 0
     while loop == 0:
         # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
         user_options = '1'
+        csv_file_path = '/root/home/git/Stocks/Fed/macro_indicators.csv'
+        date, symbol, filename, desired_path = split_string(csv_file_path)
+
+        cleaned_fed = dataPrep.CSVCleaner(
+            csv_file_path, symbol)
         if user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
             indivdual_or_list = 1

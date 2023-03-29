@@ -15,7 +15,7 @@ class DataFetcher:
         self.news_api_client = NewsApiClient(api_key=self.news_api_key)
 
     def get_indicator_data(self, series_id):
-        return self.fred.get_series(series_id, observation_start=self.start_date)
+        return self.fred.get_series(series_id, observation_start=self.start_date,frequency='q')
 
     def get_macro_indicators(self, indicator_series_ids):
         indicators_data = []

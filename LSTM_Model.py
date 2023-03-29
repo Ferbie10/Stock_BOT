@@ -47,7 +47,6 @@ def build_lstm_model(hp, num_features):
     model.compile(optimizer=Adam(learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
               loss='mean_squared_error',
               metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
-)
 
     return model
 
@@ -68,10 +67,8 @@ class LSTMModel:
         self.train_ratio = 0.8
         # Set the num_features attribute here
         self.num_features = df.shape[1]
-        print(self.num_features)
 
     def preprocess(self, seq_len):
-        print(self.df.shape)
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.scaled_data = self.scaler.fit_transform(self.df)
         num_training_samples = int(len(self.scaled_data) * self.train_ratio)
@@ -110,25 +107,32 @@ class LSTMModel:
         best_hp = tuner.get_best_hyperparameters()[0]
         return best_hp
 
-    def fit_and_save_model(self, x_train, y_train, epochs, best_hp):
-        self.model = self.build_lstm_model(best_hp)
+    def fit_and_save_model(self, best_hp, x_train, y_train, epochs, model_path, tensorboard_callback):
+        self.model = self.build_model(best_hp)
+
+        # Get the best batch size from the search
         best_batch_size = best_hp.get('batch_size', 32)
 
         self.model.fit(x_train, y_train, epochs=epochs,
-                       batch_size=best_batch_size, validation_split=0.2, verbose=2)
-        self.model.save(f"{self.path}/{self.symbol}.h5")
+                    batch_size=best_batch_size, validation_split=0.2, verbose=2,
+                    callbacks=[tensorboard_callback])  # Add the callback here
+
+        self.model.save(model_path)
+
 
     def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=40, max_trials=20, epochs=100):
         x_train, y_train, x_test, y_test = self.preprocess(seq_len)
-        best_hp = self.search_best_hyperparameters(
-            x_train, y_train, epochs, max_trials)
-        self.fit_and_save_model(best_hp, x_train, y_train, epochs, model_path)
+        best_hp = self.search_best_hyperparameters(x_train, y_train, epochs, max_trials)
+        
+        # Create a TensorBoard callback
+        log_dir = os.path.join("logs", "fit", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+        
+        self.fit_and_save_model(best_hp, x_train, y_train, epochs, model_path, tensorboard_callback)
         self.evaluate()
 
-        prediction_days = [1, 2, 3, 4, 5]
-        future_predictions = self.predict_future_close_price(
-            csv_cleaner, prediction_days)
-
+        prediction_days = [15, 30, 60, 90, 120]
+        future_predictions = self.predict_future_close_price(csv_cleaner, prediction_days)
         return future_predictions
 
     @classmethod
