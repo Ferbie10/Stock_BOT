@@ -45,7 +45,9 @@ def build_lstm_model(hp, num_features):
     model.add(Dense(1))
 
     model.compile(optimizer=Adam(learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
-                  loss='mean_squared_error',metrics=['accuracy'])
+              loss='mean_squared_error',
+              metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
+)
 
     return model
 
