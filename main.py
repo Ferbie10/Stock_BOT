@@ -8,7 +8,7 @@ import dataPrep
 import yfinance as yf
 from stocksymbol import StockSymbol
 import MacroFact
-from useful_functions import *
+from useful_functions import date
 
 api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
 ss = StockSymbol(api_key)
@@ -20,7 +20,7 @@ def main():
     loop = 0
     while loop == 0:
         # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
-        user_options = '3'
+        user_options = '1'
         if user_options == '1':
             # indivdual_or_list = int(input("Enter 1 for individual stock or 2 for stock index:  "))
             indivdual_or_list = 1
@@ -85,7 +85,7 @@ def main():
                 processed_data_path)
             lstm_model = LSTM_Model.LSTMModel(
                 processed_df, close_column_index, symbol, desired_path)
-            model_path = model_save_path(desired_path,symbol)
+            model_path = model_save_path(desired_path, symbol)
 
             lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
 

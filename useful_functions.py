@@ -2,6 +2,17 @@ import os
 import datetime
 
 
+def date(year, parent):
+    today = datetime.date.today()
+    years_past = int(year)
+    start_year = today.year - years_past
+    start_date = datetime.date(start_year, today.month, today.day)
+    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
+    if not os.path.exists(today_folder):
+        os.makedirs(today_folder)
+    return today_folder, start_date
+
+
 def save_to_csv(data, path, filename):
     full_path = os.path.join(path, filename)
     if not os.path.exists(full_path):
@@ -20,19 +31,6 @@ def split_string(path):
     desired_path = "/".join(parts[:-1])
 
     return date, symbol, filename, desired_path
-
-
-def date(year, parent):
-    today = datetime.date.today()
-    years_past = int(year)
-    start_year = today.year - years_past
-    start_date = datetime.date(start_year, today.month, today.day)
-    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
-    if not os.path.exists(today_folder):
-        os.makedirs(today_folder)
-    elif os.path.exists(today_folder):
-        pass
-    return today_folder, start_date
 
 
 def model_save_path(stockfolder, symbol):

@@ -45,7 +45,6 @@ def build_lstm_model(hp, num_features):
 
     return model
 
-
 class LSTMModel:
     def __init__(self, df, close_idx, symbol, today_folder, split_ratio=0.8, num_features=None, hidden_units=50):
         self.df = df
@@ -60,8 +59,8 @@ class LSTMModel:
         self.df.drop(columns=['symbol'], inplace=True, errors='ignore')
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.scaled_data = self.scaler.fit_transform(self.df)
-        num_training_samples = int(len(self.scaled_data) * self.split_ratio)
-        
+        num_training_samples = (len(self.scaled_data) // seq_len) * seq_len
+        self.scaled_data = self.scaled_data[:num_training_samples]        
         self.x_train = [self.scaled_data[i - seq_len:i, :] for i in range(seq_len, num_training_samples)]
         self.y_train = [self.scaled_data[i, self.close_idx] for i in range(seq_len, num_training_samples)]
         self.x_train, self.y_train = np.array(self.x_train), np.array(self.y_train)
@@ -74,19 +73,21 @@ class LSTMModel:
         self.x_test = np.reshape(self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
         return self.x_train, self.y_train, self.x_test, self.y_test
-    
-
-
+        
     def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=60, max_trials=20, epochs=100):
         x_train, y_train, x_test, y_test = self.preprocess(seq_len)
         lstm_hypermodel = lambda hp: build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials, seed=42, executions_per_trial=2, directory=self.today_folder)
-        tuner.search(x_train, y_train, epochs=epochs, batch_size=32, validation_split=0.2, verbose=2)
+        tuner.search(x_train, y_train, epochs=epochs, validation_split=0.2, verbose=2)
 
         best_hp = tuner.get_best_hyperparameters()[0]
         self.model = tuner.hypermodel.build(best_hp)
-        self.model.fit(x_train, y_train, epochs=epochs, batch_size=32, validation_split=0.2, verbose=2)
+
+        # Get the best batch size from the search
+        best_batch_size = best_hp.get('batch_size', 32)
+
+        self.model.fit(x_train, y_train, epochs=epochs, batch_size=best_batch_size, validation_split=0.2, verbose=2)
 
         self.model.save(model_path)
         self.evaluate()
