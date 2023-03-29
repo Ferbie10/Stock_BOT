@@ -107,15 +107,14 @@ class LSTMModel:
         def lstm_hypermodel(hp): return build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials,
-                            seed=42, executions_per_trial=2, directory=self.path)
+                             seed=42, executions_per_trial=2, directory=self.path)
         tuner.search(x_train, y_train, epochs=epochs,
-                    validation_split=0.2, verbose=2)
+                     validation_split=0.2, verbose=2)
 
         best_hp = tuner.get_best_hyperparameters()[0]
         # No need to save the sequence_length value in the best_hp object
         # best_hp.values['sequence_length'] = sequence_length
         return best_hp
-
 
     def fit_and_save_model(self, best_hp, x_train, y_train, epochs, model_path, tensorboard_callback):
         self.model = self.build_model(best_hp)
@@ -129,18 +128,24 @@ class LSTMModel:
 
         self.model.save(model_path)
 
-    def train_evaluate_and_predict(self, csv_cleaner, model_path, max_trials=20, epochs=100):
-        # Remove the hardcoded seq_len
-        # x_train, y_train, x_test, y_test = self.preprocess(seq_len)
-        
+    def train_evaluate_and_predict(self, csv_cleaner, model_path, max_trials=20, epochs=5):
+        # Temporarily preprocess the data with an arbitrary sequence length of 10.
+        temp_seq_len = 10
+        temp_x_train, temp_y_train, temp_x_test, temp_y_test = self.preprocess(
+            temp_seq_len)
+
         best_hp = self.search_best_hyperparameters(
-            self.x_train, self.y_train, epochs, max_trials)  # Remove seq_len as an argument here
+            temp_x_train, temp_y_train, epochs, max_trials)
 
         # Get the best sequence_length from the search
         best_sequence_length = best_hp.get('sequence_length', 10)
 
-        # Preprocess the data with the best sequence_length
-        x_train, y_train, x_test, y_test = self.preprocess(best_sequence_length)
+        # If the best sequence length is different from the temporary one, preprocess the data again
+        if best_sequence_length != temp_seq_len:
+            x_train, y_train, x_test, y_test = self.preprocess(
+                best_sequence_length)
+        else:
+            x_train, y_train, x_test, y_test = temp_x_train, temp_y_train, temp_x_test, temp_y_test
 
         # Create a TensorBoard callback
         log_dir = os.path.join(
