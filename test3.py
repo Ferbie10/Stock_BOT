@@ -1,9 +1,6 @@
-import os
-symbol = aapl
-path = '/root/home/git'
-pathname = os.path.join(path,symbol)
-filename = os.path.join(path, f'{symbol}.csv')
-if not os.path.exists(pathname):
-    os.mkdir(pathname)
-else:
-    tik_history.to_csv(filename)
+from useful_functions import *
+years = 15
+parent = '/root/home/git/'
+
+today_folder, start_date = date(years, parent)
+print(today_folder)

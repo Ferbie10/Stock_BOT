@@ -2,7 +2,7 @@ import os
 import datetime
 
 
-def date(year, parent):
+def get_path_date(year, parent):
     today = datetime.date.today()
     years_past = int(year)
     start_year = today.year - years_past

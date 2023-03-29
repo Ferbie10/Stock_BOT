@@ -1,14 +1,16 @@
-import LSTM_Model
 import datetime
 import os
+
 import keras
-import stock_data
 import pandas as pd
-import dataPrep
 import yfinance as yf
 from stocksymbol import StockSymbol
+
+import dataPrep
+import LSTM_Model
 import MacroFact
-from useful_functions import date
+import stock_data
+from useful_functions import *
 
 api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
 ss = StockSymbol(api_key)
@@ -27,21 +29,21 @@ def main():
             if indivdual_or_list == 1:
 
                 # stock_list = input("Please enter the stock Symbol:  ")
-                stock_list = 'aapl'
+                symbol = 'aapl'
                 # years = input("Enter the number of years: ")
                 years = 15
                 interval = 1
                 # interval = input("Please enter the intervel: ")
-                today_folder, start_date = date(years, parent)
-                stockfolder = stock_folder(stock_list, today_folder)
+                today_folder, start_date = get_path_date(years, parent)
+                stockfolder = stock_folder(symbol, today_folder)
                 single_stock = stock_data.Get_Stock_History(
-                    stockfolder, stock_list, start_date)
+                    stockfolder, symbol, start_date)
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
                     years, interval)
 
                 lstm_model = LSTM_Model.LSTMModel(
                     normalized_df, close_column_index, symbol, today_folder)
-                model_path = model_save_path(stockfolder, stock_list)
+                model_path = model_save_path(stockfolder, symbol)
                 lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
 
                 loop = 1
