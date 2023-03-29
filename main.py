@@ -23,19 +23,23 @@ def main():
     while loop == 0:
 
         # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
-        user_options = '0'
+        user_options = '2'
         if user_options == '0':
             get_or_clean = '0'
             if get_or_clean == '0':
-                csv_file_path = '/root/home/git/Stocks/Fed/'
-                date, symbol, filename, desired_path = split_string(
-                    csv_file_path)
+                fed_path = '/root/home/git/Stocks/Fed/'
                 start_date = '1913-01-01'
-                path_of_csv = indicators(start_date, csv_file_path)
-                fed_data = dataPrep.CSVCleaner(
-                    path_of_csv, csv_file_path, symbol='Fed')
-                output_file_path = output_path(desired_path, symbol)
-                fed_data.clean_fed(output_file_path)
+                fed_Data = indicators(start_date, fed_path)
+                fed_data_csv_name = 'macro_indicators.csv'
+                symbol = 'Fed'
+                fed_data_csv = df_to_CSV(fed_Data, fed_path, fed_data_csv_name)
+                fed_data_clean = dataPrep.CSVCleaner(
+                    fed_data_csv, fed_path, symbol)
+                fed_cleaned_csv_name = 'macro_indicators_cleaned.csv'
+                cleaned_fed_df = fed_data_clean.clean_fed(fed_cleaned_csv_name)
+                df_to_CSV(cleaned_fed_df, fed_path, fed_cleaned_csv_name)
+                loop = 1
+
             else:
                 pass
 

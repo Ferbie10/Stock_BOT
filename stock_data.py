@@ -33,7 +33,7 @@ class Get_Stock_History:
         return filename
 
     def preprocess_stock_data(self, filename):
-        output_file_path = output_path(self.path, self.symbol)
+        output_file_path = edited_csv(self.path, self.symbol)
 
         # Call CSV cleaner for the newly created file
         csv_cleaner = dataPrep.CSVCleaner(

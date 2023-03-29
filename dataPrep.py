@@ -91,4 +91,4 @@ class CSVCleaner:
         self.df['Date'] = pd.to_datetime(self.df['Date'])
         self.df.set_index('Date', inplace=True)
         self.df.dropna(inplace=True)
-        self.df.to_csv(output_file_path)
+        return self.df

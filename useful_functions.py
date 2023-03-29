@@ -24,11 +24,6 @@ def save_to_csv(data, path, name):
     return full_path
 
 
-def output_path(path, symbol):
-    output_path = os.path.join(path, f'{symbol}_edited.csv')
-    return output_path
-
-
 def split_string(path):
     # '/root/home/git/Stocks/Fed/macro_indicators.csv'
     parts = path.split('/')
@@ -72,16 +67,17 @@ def indicators(start_date, path):
     macro_indicators = DataFetcher(start_date)
     all_indicators = macro_indicators.get_macro_indicators(
         indicator_series_ids)
-    name = 'macro_indicators.csv'
-    full_path = save_to_csv(all_indicators, path, name)
-    return full_path
+
+    return all_indicators
 
 
 def df_to_CSV(data, path, desire_name):
     full_path = os.path.join(path, desire_name)
     if not os.path.exists(full_path):
         data.to_csv(full_path, index=True)
-        print(f"File saved as: {full_path}")
+        print(f"File saved as123: {full_path}")
+        pass
     else:
-        print(f"File {full_path} already exists.")
+        print(f"File {full_path} already exists123.")
+        pass
     return full_path
