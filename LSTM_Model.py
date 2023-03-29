@@ -128,10 +128,18 @@ class LSTMModel:
 
         self.model.save(model_path)
 
-    def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=10, max_trials=20, epochs=100):
-        x_train, y_train, x_test, y_test = self.preprocess(seq_len)
+    def train_evaluate_and_predict(self, csv_cleaner, model_path, max_trials=20, epochs=100):
+        # Remove the hardcoded seq_len
+        # x_train, y_train, x_test, y_test = self.preprocess(seq_len)
+        
         best_hp = self.search_best_hyperparameters(
-            x_train, y_train, seq_len, epochs, max_trials)  # Pass seq_len as an argument here
+            self.x_train, self.y_train, epochs, max_trials)  # Remove seq_len as an argument here
+
+        # Get the best sequence_length from the search
+        best_sequence_length = best_hp.get('sequence_length', 10)
+
+        # Preprocess the data with the best sequence_length
+        x_train, y_train, x_test, y_test = self.preprocess(best_sequence_length)
 
         # Create a TensorBoard callback
         log_dir = os.path.join(
