@@ -51,30 +51,34 @@ def build_lstm_model(hp, num_features):
 
 
 class LSTMModel:
-    def __init__(self, df, close_idx, symbol, today_folder, split_ratio=0.8, num_features=None, hidden_units=50):
+    def __init__(self, df, close_idx, symbol, path):
         self.df = df
-        self.split_ratio = split_ratio
-        self.num_features = len(self.df.columns)
-        self.hidden_units = hidden_units
         self.close_idx = close_idx
         self.symbol = symbol
-        self.today_folder = today_folder
+        self.path = path
+        self.scaler = None
+        self.scaled_data = None
+        self.x_train = None
+        self.y_train = None
+        self.x_test = None
+        self.y_test = None
+        self.model = None
+        self.train_ratio = 0.8
+        # Set the num_features attribute here
+        self.num_features = df.shape[1]
+        print(self.num_features)
 
     def preprocess(self, seq_len):
-        self.df.drop(columns=['symbol'], inplace=True, errors='ignore')
+        print(self.df.shape)
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.scaled_data = self.scaler.fit_transform(self.df)
-        print(self.scaled_data)
-        if len(self.scaled_data) < seq_len:
-            raise ValueError(
-                f"Sequence length ({seq_len}) is greater than the length of the data ({len(self.scaled_data)}).")
+        num_training_samples = int(len(self.scaled_data) * self.train_ratio)
 
-        num_training_samples = (len(self.scaled_data) // seq_len) * seq_len
-        self.scaled_data = self.scaled_data[:num_training_samples]
         self.x_train = [self.scaled_data[i - seq_len:i, :]
                         for i in range(seq_len, num_training_samples)]
         self.y_train = [self.scaled_data[i, self.close_idx]
                         for i in range(seq_len, num_training_samples)]
+
         self.x_train, self.y_train = np.array(
             self.x_train), np.array(self.y_train)
 
@@ -82,35 +86,41 @@ class LSTMModel:
                        for i in range(num_training_samples, len(self.scaled_data))]
         self.y_test = [self.scaled_data[i, self.close_idx]
                        for i in range(num_training_samples, len(self.scaled_data))]
+
         self.x_test, self.y_test = np.array(self.x_test), np.array(self.y_test)
-        print(self.x_test)
-        print(self.y_test)
+
         self.x_train = np.reshape(
             self.x_train, (self.x_train.shape[0], self.x_train.shape[1], self.num_features))
+
         self.x_test = np.reshape(
             self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
 
         return self.x_train, self.y_train, self.x_test, self.y_test
 
-    def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=60, max_trials=20, epochs=100):
-        x_train, y_train, x_test, y_test = self.preprocess(seq_len)
+    def search_best_hyperparameters(self, x_train, y_train, epochs, max_trials):
         def lstm_hypermodel(hp): return build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials,
-                             seed=42, executions_per_trial=2, directory=self.today_folder)
+                             seed=42, executions_per_trial=2, directory=self.path)
         tuner.search(x_train, y_train, epochs=epochs,
                      validation_split=0.2, verbose=2)
 
         best_hp = tuner.get_best_hyperparameters()[0]
-        self.model = tuner.hypermodel.build(best_hp)
+        return best_hp
 
-        # Get the best batch size from the search
+    def fit_and_save_model(self, x_train, y_train, epochs, best_hp):
+        self.model = self.build_lstm_model(best_hp)
         best_batch_size = best_hp.get('batch_size', 32)
 
         self.model.fit(x_train, y_train, epochs=epochs,
                        batch_size=best_batch_size, validation_split=0.2, verbose=2)
+        self.model.save(f"{self.path}/{self.symbol}.h5")
 
-        self.model.save(model_path)
+    def train_evaluate_and_predict(self, csv_cleaner, model_path, seq_len=40, max_trials=20, epochs=100):
+        x_train, y_train, x_test, y_test = self.preprocess(seq_len)
+        best_hp = self.search_best_hyperparameters(
+            x_train, y_train, epochs, max_trials)
+        self.fit_and_save_model(best_hp, x_train, y_train, epochs, model_path)
         self.evaluate()
 
         prediction_days = [1, 2, 3, 4, 5]
@@ -128,7 +138,7 @@ class LSTMModel:
 
     def evaluate(self):
         self.model = keras.models.load_model(
-            f'{self.today_folder}/{self.symbol}.h5')
+            f'{self.path}/{self.symbol}.h5')
         self.test_loss = self.model.evaluate(self.x_test, self.y_test)
         self.test_predictions = self.model.predict(self.x_test)
 
