@@ -68,39 +68,34 @@ class LSTMModel:
 
         return self.x_train, self.y_train, self.x_test, self.y_test
 
-    def build_lstm_model(self, hp, num_features, testing_seq_length):
-        model = Sequential()
-        self.preprocess(csv_cleaner, testing_seq_length)
+    def search_best_hyperparameters(self):
+        # Define the hyperparameter search space
+        hp = kt.HyperParameters()
+        hp.Int('sequence_length', min_value=10, max_value=100, step=10)
+        hp.Int('num_lstm_layers', min_value=1, max_value=3, step=1)
+        hp.Int('lstm_units', min_value=32, max_value=256, step=32)
+        hp.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)
+        hp.Int('batch_size', min_value=16, max_value=128, step=16)
+        hp.Choice('optimizer', values=['adam', 'rmsprop'])
 
-        # Input layer
-        model.add(LSTM(units=hp.Int('input_units', min_value=30, max_value=200, step=10),
-                       return_sequences=True,
-                       input_shape=(hp.Int('sequence_length', min_value=10,
-                                           max_value=100, step=10), num_features),
-                       kernel_regularizer=regularizers.l2(hp.Float('l2_reg_input', 1e-4, 1e-2, sampling='log'))))
-        model.add(Dropout(hp.Float('input_dropout',
-                                   min_value=0.0, max_value=0.5, step=0.1)))
+        # Create the tuner
+        tuner = kt.RandomSearch(
+            self.build_lstm_model,
+            objective=kt.Objective("val_accuracy", direction="max"),
+            hyperparameters=hp,
+            max_trials=10,
+            seed=42,
+            overwrite=True
+        )
 
-        # Hidden layers
-        for i in range(hp.Int('num_hidden_layers', 1, 4)):
-            model.add(LSTM(units=hp.Int(f'hidden_units_{i}', min_value=30, max_value=200, step=10),
-                           return_sequences=True,
-                           kernel_regularizer=regularizers.l2(hp.Float(f'l2_reg_hidden_{i}', 1e-4, 1e-2, sampling='log'))))
-            model.add(Dropout(
-                hp.Float(f'hidden_dropout_{i}', min_value=0.0, max_value=0.5, step=0.1)))
+        # Start the search
+        tuner.search(self.x_train, self.y_train, epochs=self.epochs, validation_data=(self.x_val, self.y_val), verbose=1)
 
-        # Output layer
-        model.add(LSTM(units=hp.Int('output_units', min_value=30, max_value=200, step=10),
-                       kernel_regularizer=regularizers.l2(hp.Float('l2_reg_output', 1e-4, 1e-2, sampling='log'))))
-        model.add(Dropout(hp.Float('output_dropout',
-                                   min_value=0.0, max_value=0.5, step=0.1)))
-        model.add(Dense(1))
+        # Get the best hyperparameters
+        best_hp = tuner.get_best_hyperparameters()[0]
+        print(f"Best hyperparameters found: {best_hp}")
 
-        model.compile(optimizer=Adam(learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
-                      loss='mean_squared_error',
-                      metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
-
-        return model
+        return best_hp
 
     def search_best_hyperparameters(self, x_train, y_train, epochs, max_trials):
         if x_train is None or y_train is None:
