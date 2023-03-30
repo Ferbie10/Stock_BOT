@@ -17,6 +17,40 @@ from tensorflow.keras.optimizers import Adam
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
+def build_lstm_model(hp, num_features):
+    model = Sequential()
+
+    # Input layer
+    model.add(LSTM(units=hp.Int('input_units', min_value=30, max_value=200, step=10),
+                   return_sequences=True,
+                   input_shape=(hp.Int('sequence_length', min_value=10,
+                                max_value=100, step=10), num_features),
+                   kernel_regularizer=regularizers.l2(hp.Float('l2_reg_input', 1e-4, 1e-2, sampling='log'))))
+    model.add(Dropout(hp.Float('input_dropout',
+              min_value=0.0, max_value=0.5, step=0.1)))
+
+    # Hidden layers
+    for i in range(hp.Int('num_hidden_layers', 1, 4)):
+        model.add(LSTM(units=hp.Int(f'hidden_units_{i}', min_value=30, max_value=200, step=10),
+                       return_sequences=True,
+                       kernel_regularizer=regularizers.l2(hp.Float(f'l2_reg_hidden_{i}', 1e-4, 1e-2, sampling='log'))))
+        model.add(Dropout(
+            hp.Float(f'hidden_dropout_{i}', min_value=0.0, max_value=0.5, step=0.1)))
+
+    # Output layer
+    model.add(LSTM(units=hp.Int('output_units', min_value=30, max_value=200, step=10),
+                   kernel_regularizer=regularizers.l2(hp.Float('l2_reg_output', 1e-4, 1e-2, sampling='log'))))
+    model.add(Dropout(hp.Float('output_dropout',
+              min_value=0.0, max_value=0.5, step=0.1)))
+    model.add(Dense(1))
+
+    model.compile(optimizer=Adam(learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
+                  loss='mean_squared_error',
+                  metrics=['mean_absolute_error', 'mean_absolute_percentage_error'])
+
+    return model
+
+
 class LSTMModel:
     def __init__(self, df, close_idx, symbol, path):
         self.df = df
@@ -33,7 +67,7 @@ class LSTMModel:
         # Set the num_features attribute here
         self.num_features = df.shape[1]
 
-    def preprocess(self, csv_cleaner, testing_seq_length):
+    def preprocess(self, seq_len):
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         column_name = 'symbol'
         if column_name in self.df.columns:
@@ -68,40 +102,7 @@ class LSTMModel:
 
         return self.x_train, self.y_train, self.x_test, self.y_test
 
-    def search_best_hyperparameters(self):
-        # Define the hyperparameter search space
-        hp = kt.HyperParameters()
-        hp.Int('sequence_length', min_value=10, max_value=100, step=10)
-        hp.Int('num_lstm_layers', min_value=1, max_value=3, step=1)
-        hp.Int('lstm_units', min_value=32, max_value=256, step=32)
-        hp.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)
-        hp.Int('batch_size', min_value=16, max_value=128, step=16)
-        hp.Choice('optimizer', values=['adam', 'rmsprop'])
-
-        # Create the tuner
-        tuner = kt.RandomSearch(
-            self.build_lstm_model,
-            objective=kt.Objective("val_accuracy", direction="max"),
-            hyperparameters=hp,
-            max_trials=10,
-            seed=42,
-            overwrite=True
-        )
-
-        # Start the search
-        tuner.search(self.x_train, self.y_train, epochs=self.epochs, validation_data=(self.x_val, self.y_val), verbose=1)
-
-        # Get the best hyperparameters
-        best_hp = tuner.get_best_hyperparameters()[0]
-        print(f"Best hyperparameters found: {best_hp}")
-
-        return best_hp
-
     def search_best_hyperparameters(self, x_train, y_train, epochs, max_trials):
-        if x_train is None or y_train is None:
-            raise ValueError(
-                "Invalid data: x_train and y_train must not be None")
-
         def lstm_hypermodel(hp): return build_lstm_model(hp, self.num_features)
 
         tuner = RandomSearch(lstm_hypermodel, objective='val_loss', max_trials=max_trials,
@@ -124,30 +125,40 @@ class LSTMModel:
 
         self.model.save(model_path)
 
-    def train_evaluate_and_predict(self, csv_cleaner, model_path):
-        # Preprocess data with the default sequence length
-        self.preprocess(csv_cleaner)
+    def train_evaluate_and_predict(self, csv_cleaner, model_path, initial_sequence_length=60):
+        self.csv_cleaner = csv_cleaner
+
+        # Preprocess the data with the initial_sequence_length
+        self.preprocess(initial_sequence_length)
 
         # Search for the best hyperparameters
-        best_hp = self.search_best_hyperparameters()
+        best_hp = self.search_best_hyperparameters(
+            self.x_train, self.y_train,
+            self.x_val, self.y_val,
+            self.build_lstm_model
+        )
 
-        # Build the LSTM model with the best hyperparameters and the best sequence length
-        self.build_lstm_model(best_hp, csv_cleaner, best_hp['sequence_length'])
+        # Train the model with the best hyperparameters
+        best_model = self.build_lstm_model(best_hp)
+        best_model.fit(
+            self.x_train, self.y_train,
+            validation_data=(self.x_val, self.y_val),
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            callbacks=[EarlyStopping(patience=self.patience)]
+        )
 
-        # Train the model
-        history = self.model.fit(self.x_train, self.y_train, validation_data=(
-            self.x_val, self.y_val), epochs=self.epochs, batch_size=best_hp['batch_size'], verbose=1)
+        # Save the trained model
+        best_model.save(model_path)
 
         # Evaluate the model
-        evaluation = self.model.evaluate(
-            self.x_test, self.y_test, batch_size=best_hp['batch_size'], verbose=1)
-        print(f"Test loss: {evaluation[0]}, Test accuracy: {evaluation[1]}")
+        evaluation = best_model.evaluate(self.x_test, self.y_test)
+        print("Evaluation: Loss = {}, Accuracy = {}".format(
+            evaluation[0], evaluation[1]))
 
-        # Save the model
-        self.model.save(model_path)
-
-        # Make predictions
-        predictions = self.model.predict(self.x_test)
+        # Predict using the trained model
+        predictions = best_model.predict(self.x_test)
+        self._plot_predictions(predictions)
 
     @classmethod
     def load_model(cls, model_path, df, close_idx, symbol):
