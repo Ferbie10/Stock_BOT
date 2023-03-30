@@ -15,6 +15,12 @@ from useful_functions import *
 api_key = '496f822c-c430-433d-960a-12ef11cdd5dc'
 ss = StockSymbol(api_key)
 
+def prepare_prediction_input(data, lookback, num_features):
+    prediction_input = []
+    for i in range(len(data) - lookback, len(data)):
+        prediction_input.append(data[i - lookback:i])
+    return np.array(prediction_input).reshape(-1, lookback, num_features)
+
 
 def main():
     parent = '/root/home/git/Stocks'
@@ -23,7 +29,7 @@ def main():
     while loop == 0:
 
         # user_options = input("Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
-        user_options = '2'
+        user_options = '1'
         if user_options == '0':
             get_or_clean = '0'
             if get_or_clean == '0':
@@ -56,15 +62,28 @@ def main():
                 # interval = input("Please enter the intervel: ")
                 today_folder, start_date = get_path_date(years, parent)
                 stockfolder = stock_folder(symbol, today_folder)
-                single_stock = stock_data.Get_Stock_History(
-                    stockfolder, symbol, start_date)
+                single_stock = stock_data.Get_Stock_History(stockfolder, symbol, start_date)
+                output = f"{stockfolder}\{symbol}_processed.csv"
                 normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
-                    years, interval)
+                    years, interval, output)
+                normalized_df.to_csv(output)
+                lstm_model = LSTM_Model.LSTMModel(normalized_df, close_column_index)
 
-                lstm_model = LSTM_Model.LSTMModel(
-                    normalized_df, close_column_index, symbol, today_folder)
-                model_path = model_save_path(stockfolder, symbol)
-                lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
+                # Add the code snippet here
+                # Prepare the input for prediction
+                prediction_input = prepare_prediction_input(normalized_df.values, lstm_model.lookback, normalized_df.shape[1])
+
+                # Predict the close prices for the next 5 days
+                five_day_predictions = lstm_model.predict(prediction_input)
+
+                # Reshape the predictions
+                five_day_predictions = five_day_predictions.reshape(-1, 1)
+
+                # Convert the scaled predictions to the original prices
+                five_day_prices = csv_cleaner.scaler.inverse_transform(five_day_predictions)
+
+                # Print the predictions
+                print("Predicted close prices for the next 5 days:", five_day_prices)
 
                 loop = 1
 
@@ -109,11 +128,6 @@ def main():
             stocks = stock_data.Get_Stock_History(desired_path, symbol, date)
             processed_df, close_column_index, csv_cleaner = stocks.load_processed_data(
                 processed_data_path)
-            lstm_model = LSTM_Model.LSTMModel(
-                processed_df, close_column_index, symbol, desired_path)
-            model_path = model_save_path(desired_path, symbol)
-
-            lstm_model.train_evaluate_and_predict(csv_cleaner, model_path)
 
             os.system('clear')
         elif user_options == '4':

@@ -1,5 +1,5 @@
 
-FROM tensorflow/tensorflow:latest-gpu
+FROM vsc_stock:vsc_working
 COPY . /root/home/git
 WORKDIR /root/home/git
 

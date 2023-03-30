@@ -28,31 +28,35 @@ class Get_Stock_History:
         ticker = yf.Ticker(self.symbol)
         tik_history = ticker.history(
             period=f'{year}y', interval=f'{interval}d')
+        filename = f'{self.path}/{self.symbol}.csv'
 
-        filename = save_to_csv(tik_history, self.path, f'{self.symbol}.csv')
+        tik_history.to_csv(filename)
+        
         return filename
 
-    def preprocess_stock_data(self, filename, output_name):
-
+    def preprocess_stock_data(self, filename):
+        print(filename)
         # Call CSV cleaner for the newly created file
         csv_cleaner = dataPrep.CSVCleaner(
             filename, self.path, self.symbol)
         csv_cleaner.clean()
         transformed_df = csv_cleaner.transform()
-        df_to_CSV(transformed_df, self.path, output_name)
         normalized_df, scaler = self.normalize_stock_data(transformed_df)
 
         return normalized_df, csv_cleaner.df.columns.get_loc('close'), csv_cleaner
 
-    def download_and_preprocess_data(self, years, interval):
+    def download_and_preprocess_data(self, years, interval, output_name):
+        self.output_name = output_name
         filename = self.download_stock_history(years, interval)
         normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
             filename)
         return normalized_df, close_column_index, csv_cleaner
 
     def process_existing_data(self, filename, output_name):
+        self.output_name = output_name
+
         normalized_df, close_column_index, csv_cleaner = self.preprocess_stock_data(
-            filename, output_name)
+            filename, self.output_name)
         return normalized_df, close_column_index, csv_cleaner
 
     def load_processed_data(self, filepath):

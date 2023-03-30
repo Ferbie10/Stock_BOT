@@ -10,14 +10,6 @@ class CSVCleaner:
 
         self.path = path
 
-    def add_symbol(self):
-        if 'symbol' in self.df.columns:
-            # The column already exists, so we can move on
-            pass
-        else:
-            # The column does not exist, so we need to add it
-            self.df.insert(0, 'symbol', self.symbol)
-
     def clean(self):
         # Remove unnecessary columns and rename columns
         if 'Dividends' in self.df.columns or 'Stock Splits' in self.df.columns:

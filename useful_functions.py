@@ -14,16 +14,6 @@ def get_path_date(year, parent):
     return today_folder, start_date
 
 
-def save_to_csv(data, path, name):
-    full_path = os.path.join(path, name)
-    if not os.path.exists(full_path):
-        data.to_csv(full_path, index=True)
-        print(f"File saved as: {full_path}")
-    else:
-        print(f"File {full_path} already exists.")
-    return full_path
-
-
 def split_string(path):
     # '/root/home/git/Stocks/Fed/macro_indicators.csv'
     parts = path.split('/')
@@ -70,14 +60,3 @@ def indicators(start_date, path):
 
     return all_indicators
 
-
-def df_to_CSV(data, path, desire_name):
-    full_path = os.path.join(path, desire_name)
-    if not os.path.exists(full_path):
-        data.to_csv(full_path, index=True)
-        print(f"File saved as123: {full_path}")
-        pass
-    else:
-        print(f"File {full_path} already exists123.")
-        pass
-    return full_path
