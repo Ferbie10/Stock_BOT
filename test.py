@@ -1,30 +1,97 @@
-import requests
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+import LSTM_Model
+import datetime
+import os
+import keras
+import stock_data
+import pandas as pd
+import dataPrep
 
-# Define the search term and the start and end dates for the search
-search_term = "test"
-start_date = datetime(2023, 3, 1)
-end_date = datetime(2023, 3, 14)
 
-# Open a file for writing the output
-with open("output.txt", "w") as file:
-    # Loop through each day between the start and end dates
-    current_date = start_date
-    while current_date <= end_date:
-        # Construct the search URL for the current date and search term
-        search_url = f"https://www.google.com/search?q={search_term}&tbs=cdr:1,cd_min:{current_date.strftime('%m/%d/%Y')},cd_max:{current_date.strftime('%m/%d/%Y')}"
-        
-        # Use requests and BeautifulSoup to get the search results page HTML
-        response = requests.get(search_url)
-        soup = BeautifulSoup(response.content, "html.parser")
-        
-        # Loop through each HTML element on the page and write its name and text content to the file
-        for element in soup.find_all(True):
-            file.write(f"Date: {current_date.strftime('%m/%d/%Y')}\n")
-            file.write(f"Element: {element.name}\n")
-            file.write(f"Text: {element.get_text()}\n")
-            file.write("--------------------\n")
-        
-        # Increment the current date by one day
-        current_date += timedelta(days=1)
+def date(year):
+    today = datetime.date.today()
+    years_past = year
+    start_year = today.year - years_past
+    start_date = datetime.date(start_year, today.month, today.day)
+    today_folder = os.path.join(parent, start_date.strftime('%Y-%m-%d'))
+    if not os.path.exists(today_folder):
+        os.makedirs(today_folder)
+    elif os.path.exists(today_folder):
+        pass
+    return today_folder
+
+
+def stock_folder(stock_list, path):
+
+    for symbol in stock_list:
+        filename = os.path.join(path, f'{symbol}')
+        if not os.exists(filename):
+            os.mkdir(filename)
+        else:
+            pass
+
+
+def main():
+    parent = '/root/home/git/'
+
+    loop = 0
+    while loop == 0:
+        user_options = input(
+            "Enter:\n1 for a new model\n2 to load in a CSV\n3 to load processed CSV\n4 to load in a Model\n0 to end the program\n")
+        if user_options == '1':
+            indivdual_or_list = int(
+                input("Enter 1 for individual stock or 2 for stock index:  "))
+            if indivdual_or_list == 1:
+                stock_list = input("Please enter the stock Symbol:  ")
+                years = input("Enter the number of years: ")
+                interval = input("Please enter the intervel: ")
+                today_folder = date(years)
+                stockfolder = stock_folder(stock_list, today_folder)
+                single_stock = stock_data.Get_Stock_History(
+                    stockfolder, stock_list, start_date)
+                normalized_df, close_column_index, csv_cleaner = single_stock.download_and_preprocess_data(
+                    stock_list, years, interval)
+                single_stock.train_evaluate_and_predict(
+                    normalized_df, close_column_index, stock_list, csv_cleaner, stockfolder)
+
+            else:
+                index_url = input("Please enter the URL of the Index List:   ")
+                Complist = dataPrep.Get_SP500(url)
+                stock_list = Complist.download()
+                stocks = dataPrep.Get_Stock_History(
+                    today_folder, stock_list, start_date, today)
+                stocks.compstockdata()
+            os.system('clear')
+
+        elif user_options == '2':
+            csv_path = input("Please enter the path of the CSV file: ")
+            stocks = stock_data.Get_Stock_History(
+                today_folder, None, start_date, today)
+            stocks.load_and_preprocess_csv(csv_path)
+            os.system('clear')
+        elif user_options == '3':
+            # processed_data_path = input("Please enter the path of the processed data CSV file: ")
+            processed_data_path = '/root/home/git/2008-03-23/aapl_edited.csv'
+            ticker = processed_data_path.split(
+                "/")[-1].replace("_edited.csv", "")
+
+            stocks = stock_data.Get_Stock_History(
+                today_folder, ticker, start_date)
+            processed_df, close_column_index, symbol, csv_cleaner = stocks.load_processed_data(
+                processed_data_path)
+
+            stocks.train_evaluate_and_predict(
+                processed_df, close_column_index, symbol, csv_cleaner, today_folder)
+            os.system('clear')
+        elif user_options == '4':
+            model_path = input(
+                "Please enter the path of the saved model file: ")
+            lstm_model = LSTM_Model.LSTMModel.load_model(
+                model_path, cleaned_df, close_column_index, symbol, today_folder)
+            lstm_model.evaluate()
+
+            os.system('clear')
+        else:
+            loop = 1
+
+
+main()

@@ -1,88 +1,82 @@
-import os
 import numpy as np
 import pandas as pd
-import yfinance as yf
-from datetime import datetime, timedelta
-import ssl
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
 import tensorflow as tf
-
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
 class LSTMModel:
-    def __init__(self, csv_file_path, train_test_split_ratio=0.8, num_time_steps=10, num_features=5, num_hidden_units=50, close_column_index=3):
-        self.df = pd.read_csv(csv_file_path)
-        self.train_test_split_ratio = train_test_split_ratio
-        self.num_time_steps = num_time_steps
-        self.num_features = num_features
-        self.num_hidden_units = num_hidden_units
-        self.close_column_index = close_column_index
+    def __init__(self, dataframe, target_col, test_size=0.2, lookback=60, epochs=50, batch_size=32):
+        self.data = dataframe
+        self.target_col = target_col
 
-    def preprocess(self):
-        # Normalize the data using MinMaxScaler
-        self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.scaled_data = self.scaler.fit_transform(
-            self.df[['open', 'high', 'low', 'close', 'volume']])
+        self.test_size = test_size
+        self.lookback = int(lookback)
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_data()
+        self.model = self.build_model()
 
-        # Split the data into training and testing sets
-        num_training_samples = int(
-            len(self.scaled_data) * self.train_test_split_ratio)
-        self.x_train = []
-        self.y_train = []
-        for i in range(self.num_time_steps, num_training_samples):
-            self.x_train.append(self.scaled_data[i - self.num_time_steps:i, :])
-            # use the close price as the label
-            self.y_train.append(self.scaled_data[i, self.close_column_index])
-        self.x_train, self.y_train = np.array(
-            self.x_train), np.array(self.y_train)
+    def prepare_data(self):
+        # Normalize the data
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_data = scaler.fit_transform(self.data)
 
-        self.x_test = []
-        self.y_test = []
-        for i in range(num_training_samples, len(self.scaled_data)):
-            self.x_test.append(self.scaled_data[i - self.num_time_steps:i, :])
-            # use the close price as the label
-            self.y_test.append(self.scaled_data[i, self.close_column_index])
-        self.x_test, self.y_test = np.array(self.x_test), np.array(self.y_test)
+        # Prepare the input and output sequences for the LSTM model
+        X, y = [], []
+        for i in range(self.lookback, len(scaled_data)):
+            X.append(scaled_data[i - self.lookback:i])
+            # Assuming 'close' price is the first column
+            y.append(scaled_data[i, self.target_col])
+        X, y = np.array(X), np.array(y)
 
-        # Reshape the data for use with an LSTM model
-        print(self.x_test)
+        # Split the data into training and test sets
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=self.test_size, shuffle=False)
 
-        self.x_train = np.reshape(
-            self.x_train, (self.x_train.shape[0], self.x_train.shape[1], self.num_features))
-        self.x_test = np.reshape(
-            self.x_test, (self.x_test.shape[0], self.x_test.shape[1], self.num_features))
+        return X_train, X_test, y_train, y_test
 
     def build_model(self):
         # Build the LSTM model
-        with tf.device('/gpu:0'):
-            self.model = Sequential()
-            self.model.add(LSTM(units=self.num_hidden_units, return_sequences=True, input_shape=(
-                self.num_time_steps, self.num_features)))
-            self.model.add(
-                LSTM(units=self.num_hidden_units, return_sequences=True))
-            self.model.add(LSTM(units=self.num_hidden_units))
-            self.model.add(Dense(units=1))
+        model = Sequential()
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(self.X_train.shape[1], self.X_train.shape[2]), kernel_regularizer=l2(
+            0.01), recurrent_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+        model.add(Dropout(0.2))
+        model.add(LSTM(units=50, return_sequences=False, kernel_regularizer=l2(
+            0.01), recurrent_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=1))
 
-        self.model.compile(optimizer='adam', loss='mean_squared_error')
+        # Compile the model with an optimizer and loss function
+        model.compile(optimizer='adam', loss='mean_squared_error')
 
-    def train(self, num_epochs=100, batch_size=32):
+        return model
+
+    def train(self):
+        # Define callbacks
+        early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+        model_checkpoint = ModelCheckpoint(
+            filepath='best_model.h5', monitor='val_loss', save_best_only=True)
+
         # Train the model
-        with tf.device('/gpu:0'):
-            self.model.fit(self.x_train, self.y_train,
-                           epochs=num_epochs, batch_size=batch_size)
+        self.model.fit(self.X_train, self.y_train, validation_data=(self.X_test, self.y_test),
+                       epochs=self.epochs, batch_size=self.batch_size, callbacks=[early_stopping, model_checkpoint])
 
-    def evaluate(self):
-        # Evaluate the model
-        with tf.device('/gpu:0'):
-            self.test_loss = self.model.evaluate(self.x_test, self.y_test)
-            self.test_predictions = self.model.predict(self.x_test)
-            self.test_predictions = self.scaler.inverse_transform(
-                self.test_predictions)
+    def predict(self, X, days=5):
+        predictions = []
 
-    def get_predictions(self):
-        # Return the predictions on the test data
-        return self.test_predictions
+        for _ in range(days):
+            prediction = self.model.predict(X)
+            predictions.append(prediction[0])
+
+            # Append the predicted value to the input sequence
+            new_row = np.append(X[0][1:], prediction, axis=0)
+
+            # Reshape the input sequence to match the required input shape
+            X = np.reshape(new_row, (1, new_row.shape[0], new_row.shape[1]))
+
+        return predictions

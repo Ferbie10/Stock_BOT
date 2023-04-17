@@ -1,0 +1,11 @@
+num_epochs: The number of epochs represents the number of times the entire training dataset is passed through the neural network during training. 
+    Each epoch is a complete cycle of forward and backward passes through the entire dataset. 
+        Increasing the number of epochs may lead to better training of the model, but it may also increase the risk of overfitting if the model starts to memorize the training data instead of learning to generalize. 
+            It is important to find a balance between too few epochs (underfitting) and too many epochs (overfitting).
+
+
+batch_size: The batch size refers to the number of training samples used in one update of the model's weights during training. 
+The training dataset is divided into smaller batches, and the model's weights are updated after each batch. 
+A smaller batch size generally leads to a more accurate estimation of the gradient, but it can also result in slower training due to the increased number of weight updates.
+A larger batch size, on the other hand, can lead to faster training but may result in a less accurate estimation of the gradient. 
+It is important to find a balance between computational efficiency and gradient accuracy when choosing the batch size.
